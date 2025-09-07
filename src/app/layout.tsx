@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { ThemeProvider } from '@mui/material/styles';
 import { CssBaseline } from '@mui/material';
 import { Toaster } from 'react-hot-toast';
+import { AuthProvider } from '@/lib/hooks/use-auth';
 import './globals.css';
 import { theme } from '@/lib/utils/theme';
 
@@ -35,7 +36,9 @@ export default function RootLayout({
       <body>
         <ThemeProvider theme={theme}>
           <CssBaseline />
+          <AuthProvider>
           {children}
+          </AuthProvider>
           <Toaster
             position="top-right"
             toastOptions={{

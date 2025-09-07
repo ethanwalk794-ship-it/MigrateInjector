@@ -1,123 +1,70 @@
-import { z } from 'zod';
+import type { Metadata } from 'next';
+import { ThemeProvider } from '@mui/material/styles';
+import { CssBaseline } from '@mui/material';
+import { Toaster } from 'react-hot-toast';
+import { AuthProvider } from '@/lib/hooks/use-auth';
+import './globals.css';
+import { theme } from '@/lib/utils/theme';
 
-export const fileUploadSchema = z.object({
-    filename: z.string().min(1, 'Filename is required'),
-    mimetype: z.string().min(1, 'MIME type is required'),
-    size: z.number().min(1, 'File size must be greater than 0'),
-    buffer: z.instanceof(Buffer, 'Invalid file buffer'),
-});
+export const metadata: Metadata = {
+  title: 'Resume Customizer Pro',
+  description: 'A high-performance resume customization platform for bulk processing, tech stack injection, and automated email sending.',
+  keywords: ['resume', 'customization', 'bulk processing', 'tech stack', 'email'],
+  authors: [{ name: 'Resume Customizer Team' }],
+  viewport: 'width=device-width, initial-scale=1',
+  robots: 'index, follow',
+  openGraph: {
+    title: 'Resume Customizer Pro',
+    description: 'A high-performance resume customization platform for bulk processing, tech stack injection, and automated email sending.',
+    type: 'website',
+    locale: 'en_US',
+  },
+  icons: {
+    icon: '/icons/icon-192x192.png',
+    apple: '/icons/apple-touch-icon.png',
+  },
+  manifest: '/manifest.json',
+};
 
-export const allowedMimeTypes = [
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
-    'application/msword', // .doc
-    'application/pdf', // .pdf
-    'text/plain', // .txt
-    'text/html', // .html
-];
-
-export const maxFileSize = 50 * 1024 * 1024; // 50MB
-
-export class FileValidator {
-    async validateFile(file: {
-        name: string;
-        type: string;
-        size: number;
-    }): Promise<{
-        valid: boolean;
-        errors: string[];
-    }> {
-        const errors: string[] = [];
-        
-        // Check file name
-        if (!file.name) {
-            errors.push('Filename is required');
-        }
-        
-        // Check MIME type
-        if (!allowedMimeTypes.includes(file.type)) {
-            errors.push(`File type ${file.type} is not allowed. Allowed types: ${allowedMimeTypes.join(', ')}`);
-        }
-        
-        // Check file size
-        if (file.size > maxFileSize) {
-            errors.push(`File size ${file.size} bytes exceeds maximum allowed size of ${maxFileSize} bytes`);
-        }
-        
-        // Check filename validity
-        if (!isValidFilename(file.name)) {
-            errors.push('Invalid filename. Only alphanumeric characters, dots, hyphens, and underscores are allowed');
-        }
-        
-        return {
-            valid: errors.length === 0,
-            errors
-        };
-    }
-}
-    filename: string;
-    mimetype: string;
-    size: number;
-    buffer: Buffer;
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
 }) {
-    const result = fileUploadSchema.safeParse(file);
-
-    if (!result.success) {
-        return {
-            valid: false,
-            errors: result.error.errors.map(err => err.message),
-        };
-    }
-
-    // Check MIME type
-    if (!allowedMimeTypes.includes(file.mimetype)) {
-        return {
-            valid: false,
-            errors: [`File type ${file.mimetype} is not allowed. Allowed types: ${allowedMimeTypes.join(', ')}`],
-        };
-    }
-
-    // Check file size
-    if (file.size > maxFileSize) {
-        return {
-            valid: false,
-            errors: [`File size ${file.size} bytes exceeds maximum allowed size of ${maxFileSize} bytes`],
-        };
-    }
-
-    // Check filename
-    if (!isValidFilename(file.filename)) {
-        return {
-            valid: false,
-            errors: ['Invalid filename. Only alphanumeric characters, dots, hyphens, and underscores are allowed'],
-        };
-    }
-
-    return {
-        valid: true,
-        errors: [],
-    };
-}
-
-export function isValidFilename(filename: string): boolean {
-    // Allow alphanumeric, dots, hyphens, underscores, and spaces
-    const filenameRegex = /^[a-zA-Z0-9._\-\s]+$/;
-    return filenameRegex.test(filename) && filename.length <= 255;
-}
-
-export function sanitizeFilename(filename: string): string {
-    // Remove or replace invalid characters
-    return filename
-        .replace(/[^a-zA-Z0-9._\-\s]/g, '_')
-        .replace(/\s+/g, '_')
-        .substring(0, 255);
-}
-
-export function getFileExtension(filename: string): string {
-    const lastDot = filename.lastIndexOf('.');
-    return lastDot === -1 ? '' : filename.substring(lastDot + 1).toLowerCase();
-}
-
-export function isDocumentFile(filename: string): boolean {
-    const extension = getFileExtension(filename);
-    return ['docx', 'doc', 'pdf'].includes(extension);
+  return (
+    <html lang="en">
+      <body>
+        <ThemeProvider theme={theme}>
+          <CssBaseline />
+          <AuthProvider>
+          {children}
+          </AuthProvider>
+          <Toaster
+            position="top-right"
+            toastOptions={{
+              duration: 4000,
+              style: {
+                background: '#363636',
+                color: '#fff',
+              },
+              success: {
+                duration: 3000,
+                iconTheme: {
+                  primary: '#4ade80',
+                  secondary: '#fff',
+                },
+              },
+              error: {
+                duration: 5000,
+                iconTheme: {
+                  primary: '#ef4444',
+                  secondary: '#fff',
+                },
+              },
+            }}
+          />
+        </ThemeProvider>
+      </body>
+    </html>
+  );
 }

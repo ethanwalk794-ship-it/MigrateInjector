@@ -1,11 +1,36 @@
+'use client';
+
 import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/lib/db/connection';
 import { getRedisConnection } from '@/lib/queue/redis';
 
+// Define types for the health check response
+interface MemoryUsage {
+  rss: number;
+  heapTotal: number;
+  heapUsed: number;
+  external: number;
+  status: string;
+}
+
+interface HealthCheck {
+  status: string;
+  timestamp: string;
+  uptime: number;
+  version: string;
+  environment: string;
+  services: {
+    database: string;
+    redis: string;
+    memory: string | MemoryUsage;
+  };
+  responseTime: number;
+}
+
 export async function GET(request: NextRequest) {
   try {
     const startTime = Date.now();
-    const health = {
+    const health: HealthCheck = {
       status: 'healthy',
       timestamp: new Date().toISOString(),
       uptime: process.uptime(),
@@ -14,7 +39,7 @@ export async function GET(request: NextRequest) {
       services: {
         database: 'unknown',
         redis: 'unknown',
-        memory: 'unknown'
+        memory: 'unknown' // Initially a string
       },
       responseTime: 0
     };
@@ -41,17 +66,16 @@ export async function GET(request: NextRequest) {
     // Check memory usage
     try {
       const memUsage = process.memoryUsage();
-      const memUsageMB = {
+      const memUsageMB: MemoryUsage = {
         rss: Math.round(memUsage.rss / 1024 / 1024),
         heapTotal: Math.round(memUsage.heapTotal / 1024 / 1024),
         heapUsed: Math.round(memUsage.heapUsed / 1024 / 1024),
-        external: Math.round(memUsage.external / 1024 / 1024)
+        external: Math.round(memUsage.external / 1024 / 1024),
+        status: memUsage.heapUsed / 1024 / 1024 > 500 ? 'warning' : 'ok' // Warning if heap > 500MB
       };
       
-      health.services.memory = {
-        ...memUsageMB,
-        status: memUsageMB.heapUsed > 500 ? 'warning' : 'ok' // Warning if heap > 500MB
-      };
+      // Now assign the MemoryUsage object
+      health.services.memory = memUsageMB;
     } catch (error) {
       health.services.memory = 'error';
     }

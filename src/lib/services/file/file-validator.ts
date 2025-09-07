@@ -1,10 +1,14 @@
+'use client';
+
 import { z } from 'zod';
 
 export const fileUploadSchema = z.object({
     filename: z.string().min(1, 'Filename is required'),
     mimetype: z.string().min(1, 'MIME type is required'),
     size: z.number().min(1, 'File size must be greater than 0'),
-    buffer: z.instanceof(Buffer, 'Invalid file buffer'),
+    buffer: z.custom<Buffer>((v: unknown) => v instanceof Buffer, {
+        message: 'Invalid file buffer',
+    }),
 });
 
 export const allowedMimeTypes = [
@@ -85,3 +89,26 @@ export function isDocumentFile(filename: string): boolean {
     const extension = getFileExtension(filename);
     return ['docx', 'doc', 'pdf'].includes(extension);
 }
+
+// Class wrapper expected by API routes (accepts Web File)
+export class FileValidator {
+    async validateFile(file: File): Promise<{ valid: boolean; errors: string[] }> {
+        try {
+            const buffer = Buffer.from(await file.arrayBuffer());
+            const result = validateFile({
+                filename: file.name,
+                mimetype: file.type,
+                size: file.size,
+                buffer,
+            });
+            return result;
+        } catch (error) {
+            return {
+                valid: false,
+                errors: [error instanceof Error ? error.message : 'Failed to read file'],
+            };
+        }
+    }
+}
+
+export default FileValidator;

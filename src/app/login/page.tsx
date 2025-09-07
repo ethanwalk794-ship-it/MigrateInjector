@@ -5,12 +5,10 @@ import {
   Box, 
   Container, 
   Typography, 
-  Paper, 
   Button, 
   TextField,
-  Alert,
-  Stack,
   Link,
+  Stack,
   Divider,
   IconButton,
   InputAdornment,
@@ -42,8 +40,8 @@ interface RegisterForm {
   email: string;
   password: string;
   confirmPassword: string;
-  company: string;
-  jobTitle: string;
+  company?: string; // Make optional if not supported by backend
+  jobTitle?: string; // Make optional if not supported by backend
 }
 
 export default function LoginPage() {
@@ -112,13 +110,14 @@ export default function LoginPage() {
       newErrors.confirmPassword = 'Passwords do not match';
     }
     
-    if (!registerForm.company) {
-      newErrors.company = 'Company is required';
-    }
+    // Make company and jobTitle optional in validation if they're not required by backend
+    // if (!registerForm.company) {
+    //   newErrors.company = 'Company is required';
+    // }
     
-    if (!registerForm.jobTitle) {
-      newErrors.jobTitle = 'Job title is required';
-    }
+    // if (!registerForm.jobTitle) {
+    //   newErrors.jobTitle = 'Job title is required';
+    // }
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -149,14 +148,20 @@ export default function LoginPage() {
     
     try {
       setLoading(true);
-      await register({
+      
+      // Check what properties the register function actually accepts
+      // You may need to inspect the useAuth hook or backend API
+      const registerData = {
         firstName: registerForm.firstName,
         lastName: registerForm.lastName,
         email: registerForm.email,
         password: registerForm.password,
-        company: registerForm.company,
-        jobTitle: registerForm.jobTitle
-      });
+        // Only include company and jobTitle if supported by backend
+        ...(registerForm.company && { company: registerForm.company }),
+        ...(registerForm.jobTitle && { jobTitle: registerForm.jobTitle })
+      };
+      
+      await register(registerData);
       toast.success('Registration successful!');
       router.push('/dashboard');
     } catch (error) {
@@ -321,9 +326,10 @@ export default function LoginPage() {
                       }}
                     />
 
+                    {/* Make company and jobTitle optional fields */}
                     <TextField
                       fullWidth
-                      label="Company"
+                      label="Company (Optional)"
                       value={registerForm.company}
                       onChange={(e) => setRegisterForm(prev => ({ ...prev, company: e.target.value }))}
                       error={!!errors.company}
@@ -339,7 +345,7 @@ export default function LoginPage() {
 
                     <TextField
                       fullWidth
-                      label="Job Title"
+                      label="Job Title (Optional)"
                       value={registerForm.jobTitle}
                       onChange={(e) => setRegisterForm(prev => ({ ...prev, jobTitle: e.target.value }))}
                       error={!!errors.jobTitle}

@@ -1,3 +1,5 @@
+'use client';
+
 import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/lib/db/connection';
 import Resume from '@/lib/db/models/resume';
@@ -6,6 +8,7 @@ import { getCurrentUser } from '@/lib/middleware/auth';
 import { addJobToQueue } from '@/lib/queue/queues';
 import { EmailValidator } from '@/lib/services/email/email-validator';
 import { z } from 'zod';
+import { Types } from 'mongoose';
 
 const SendEmailSchema = z.object({
   resumeId: z.string().min(1, 'Resume ID is required'),
@@ -20,6 +23,27 @@ const SendEmailSchema = z.object({
     isSecure: z.boolean().optional()
   })
 });
+
+// Helper function to safely call Mongoose methods
+const safeFindOne = async (model: any, query: any) => {
+  return model.findOne(query).exec();
+};
+
+const safeFind = async (model: any, query: any, options: any = {}) => {
+  let queryBuilder = model.find(query);
+
+  if (options.select) {
+    queryBuilder = queryBuilder.select(options.select);
+  }
+  if (options.sort) {
+    queryBuilder = queryBuilder.sort(options.sort);
+  }
+  if (options.limit) {
+    queryBuilder = queryBuilder.limit(options.limit);
+  }
+
+  return queryBuilder.exec();
+};
 
 export async function POST(request: NextRequest) {
   try {
@@ -38,10 +62,10 @@ export async function POST(request: NextRequest) {
     // Parse and validate request body
     const body = await request.json();
     const validationResult = SendEmailSchema.safeParse(body);
-    
+
     if (!validationResult.success) {
       return NextResponse.json(
-        { 
+        {
           error: 'Validation failed',
           details: validationResult.error.errors
         },
@@ -51,10 +75,10 @@ export async function POST(request: NextRequest) {
 
     const { resumeId, emailConfig } = validationResult.data;
 
-    // Find resume
-    const resume = await Resume.findOne({ 
-      _id: resumeId, 
-      userId: user._id 
+    // Find resume using safe helper
+    const resume = await safeFindOne(Resume, {
+      _id: resumeId,
+      userId: user._id
     });
 
     if (!resume) {
@@ -75,10 +99,10 @@ export async function POST(request: NextRequest) {
     // Validate email configuration
     const emailValidator = new EmailValidator();
     const emailValidation = emailValidator.validateEmailConfig(emailConfig);
-    
+
     if (!emailValidation.valid) {
       return NextResponse.json(
-        { 
+        {
           error: 'Email configuration invalid',
           details: emailValidation.errors
         },
@@ -142,9 +166,9 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Email sending error:', error);
-    
+
     return NextResponse.json(
-      { 
+      {
         error: 'Email sending failed',
         message: error instanceof Error ? error.message : 'Unknown error'
       },
@@ -172,9 +196,9 @@ export async function GET(request: NextRequest) {
     const jobId = searchParams.get('jobId');
 
     if (jobId) {
-      // Get email sending status for specific job
-      const job = await Job.findOne({ 
-        _id: jobId, 
+      // Get email sending status for specific job using safe helper
+      const job = await safeFindOne(Job, {
+        _id: jobId,
         userId: user._id,
         type: 'email_sending'
       });
@@ -202,14 +226,15 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Get all email sending jobs for user
-    const jobs = await Job.find({ 
+    // Get all email sending jobs for user using safe helper
+    const jobs = await safeFind(Job, {
       userId: user._id,
       type: 'email_sending'
-    })
-    .select('-data')
-    .sort({ createdAt: -1 })
-    .limit(20);
+    }, {
+      select: '-data',
+      sort: { createdAt: -1 },
+      limit: 20
+    });
 
     return NextResponse.json({
       success: true,
@@ -220,9 +245,9 @@ export async function GET(request: NextRequest) {
 
   } catch (error) {
     console.error('Get email status error:', error);
-    
+
     return NextResponse.json(
-      { 
+      {
         error: 'Failed to get email status',
         message: error instanceof Error ? error.message : 'Unknown error'
       },

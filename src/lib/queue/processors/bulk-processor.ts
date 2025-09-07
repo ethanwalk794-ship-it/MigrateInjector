@@ -1,6 +1,8 @@
+'use client';
+
 import { Job } from 'bullmq';
 import { Logger } from '../../utils/logger';
-import { DocxProcessor } from '../../services/document/docx-processor';
+import DocumentProcessor from '../../services/document/docx-processor';
 import { EmailService } from '../../utils/email-service';
 
 const logger = Logger.getInstance();
@@ -36,11 +38,19 @@ export async function processBulkJob(job: Job<BulkJobData>): Promise<any> {
 
         await job.updateProgress(5);
 
-        const docxProcessor = DocxProcessor.getInstance();
+        const docxProcessor = new DocumentProcessor();
         const emailService = EmailService.getInstance();
 
-        // Initialize email service
-        await emailService.initialize(emailConfig.smtpConfig);
+        // Initialize email service (map to EmailService EmailConfig shape)
+        await emailService.initialize({
+            smtpHost: emailConfig.smtpConfig.host,
+            smtpPort: emailConfig.smtpConfig.port,
+            smtpUser: emailConfig.smtpConfig.user,
+            smtpPassword: emailConfig.smtpConfig.password,
+            fromEmail: emailConfig.to[0] || 'no-reply@localhost',
+            fromName: 'Resume Customizer',
+            secure: emailConfig.smtpConfig.port === 465,
+        });
 
         await job.updateProgress(10);
 
@@ -61,7 +71,7 @@ export async function processBulkJob(job: Job<BulkJobData>): Promise<any> {
                 const fileBuffer = await fs.readFile(filePath);
 
                 // Process document
-                const processResult = await docxProcessor.processDocument(fileBuffer, processingOptions);
+                const processResult = await docxProcessor.extractContent(fileBuffer);
 
                 if (!processResult.success) {
                     throw new Error(processResult.error || 'Document processing failed');
@@ -72,8 +82,9 @@ export async function processBulkJob(job: Job<BulkJobData>): Promise<any> {
                 await fs.writeFile(processedFilePath, fileBuffer);
 
                 // Prepare email data
+                const recipient: string = emailConfig.to[i] ?? emailConfig.to[0] ?? 'no-reply@localhost';
                 const emailData = {
-                    to: emailConfig.to[i] || emailConfig.to[0], // Use first email if not enough provided
+                    to: recipient,
                     subject: emailConfig.subject,
                     html: emailConfig.message,
                     text: emailConfig.message.replace(/<[^>]*>/g, ''),
@@ -93,8 +104,8 @@ export async function processBulkJob(job: Job<BulkJobData>): Promise<any> {
                         success: true,
                         messageId: emailResult.messageId,
                         processedFilePath,
-                        projects: processResult.projects,
-                        techStacks: processResult.techStacks,
+                        projects: processResult.data?.projects || [],
+                        techStacks: processResult.data?.techStacks || [],
                     });
                 } else {
                     throw new Error(emailResult.error || 'Email sending failed');

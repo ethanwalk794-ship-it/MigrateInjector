@@ -1,3 +1,5 @@
+'use client';
+
 import { NextRequest, NextResponse } from 'next/server';
 import { writeFile, mkdir } from 'fs/promises';
 import { join } from 'path';
@@ -7,6 +9,30 @@ import Resume from '@/lib/db/models/resume';
 import { FileValidator } from '@/lib/services/file/file-validator';
 import { DocumentProcessor } from '@/lib/services/document/docx-processor';
 import { getCurrentUser } from '@/lib/middleware/auth';
+
+// Helper function to safely call Mongoose methods
+const safeFind = async (model: any, query: any, options: any = {}) => {
+  let queryBuilder = model.find(query);
+  
+  if (options.select) {
+    queryBuilder = queryBuilder.select(options.select);
+  }
+  if (options.sort) {
+    queryBuilder = queryBuilder.sort(options.sort);
+  }
+  if (options.skip) {
+    queryBuilder = queryBuilder.skip(options.skip);
+  }
+  if (options.limit) {
+    queryBuilder = queryBuilder.limit(options.limit);
+  }
+  
+  return queryBuilder.exec();
+};
+
+const safeCountDocuments = async (model: any, query: any) => {
+  return model.countDocuments(query).exec();
+};
 
 export async function POST(request: NextRequest) {
   try {
@@ -38,10 +64,10 @@ export async function POST(request: NextRequest) {
     // Validate file
     const fileValidator = new FileValidator();
     const validationResult = await fileValidator.validateFile(file);
-    
+
     if (!validationResult.valid) {
       return NextResponse.json(
-        { 
+        {
           error: 'File validation failed',
           details: validationResult.errors
         },
@@ -67,14 +93,14 @@ export async function POST(request: NextRequest) {
     const docProcessor = new DocumentProcessor();
     const processingResult = await docProcessor.extractContent(buffer);
 
-    if (!processingResult.success) {
+    if (!processingResult.success || !processingResult.data) {
       // Clean up uploaded file
-      await import('fs').then(fs => fs.promises.unlink(filePath).catch(() => {}));
-      
+      await import('fs').then(fs => fs.promises.unlink(filePath).catch(() => { }));
+
       return NextResponse.json(
-        { 
+        {
           error: 'Document processing failed',
-          details: processingResult.error
+          details: processingResult.error || 'No data extracted from document'
         },
         { status: 400 }
       );
@@ -93,9 +119,9 @@ export async function POST(request: NextRequest) {
       status: 'ready',
       content: {
         rawText: processingResult.data.rawText,
-        projects: processingResult.data.projects,
-        extractedTechStacks: processingResult.data.techStacks,
-        sections: processingResult.data.sections
+        projects: processingResult.data.projects || [],
+        extractedTechStacks: processingResult.data.techStacks || [],
+        sections: processingResult.data.sections || []
       },
       customization: {
         techStacks: [],
@@ -113,22 +139,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       data: {
-        id: resume._id,
-        title: resume.title,
-        filename: resume.originalFilename,
-        size: resume.originalSize,
-        status: resume.status,
-        projects: resume.content.projects.length,
-        techStacks: resume.content.extractedTechStacks.length,
-        createdAt: resume.createdAt
+        resume,
       }
     });
 
   } catch (error) {
     console.error('Resume upload error:', error);
-    
+
     return NextResponse.json(
-      { 
+      {
         error: 'Upload failed',
         message: error instanceof Error ? error.message : 'Unknown error'
       },
@@ -160,11 +179,11 @@ export async function GET(request: NextRequest) {
 
     // Build query
     const query: any = { userId: user._id };
-    
+
     if (status) {
       query.status = status;
     }
-    
+
     if (search) {
       query.$or = [
         { title: { $regex: search, $options: 'i' } },
@@ -173,15 +192,16 @@ export async function GET(request: NextRequest) {
       ];
     }
 
-    // Get resumes with pagination
+    // Get resumes with pagination using safe helper
     const skip = (page - 1) * limit;
-    const resumes = await Resume.find(query)
-      .select('-content.rawText -customization -emailConfig')
-      .sort({ updatedAt: -1 })
-      .skip(skip)
-      .limit(limit);
+    const resumes = await safeFind(Resume, query, {
+      select: '-content.rawText -customization -emailConfig',
+      sort: { updatedAt: -1 },
+      skip,
+      limit
+    });
 
-    const total = await Resume.countDocuments(query);
+    const total = await safeCountDocuments(Resume, query);
 
     return NextResponse.json({
       success: true,
@@ -198,9 +218,9 @@ export async function GET(request: NextRequest) {
 
   } catch (error) {
     console.error('Get resumes error:', error);
-    
+
     return NextResponse.json(
-      { 
+      {
         error: 'Failed to fetch resumes',
         message: error instanceof Error ? error.message : 'Unknown error'
       },

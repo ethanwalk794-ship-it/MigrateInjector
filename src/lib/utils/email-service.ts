@@ -1,5 +1,7 @@
+'use client';
+
 import nodemailer from 'nodemailer';
-import { EmailTemplate } from '@/lib/db/models/email-template';
+import { IEmailTemplate } from '@/lib/db/models/email-template';
 
 export interface EmailConfig {
     smtpHost: string;
@@ -21,6 +23,8 @@ export interface EmailData {
         content: Buffer;
         contentType: string;
     }>;
+    fromName?: string;
+    fromEmail?: string;
 }
 
 export interface EmailResult {
@@ -45,7 +49,7 @@ export class EmailService {
      */
     async initialize(config: EmailConfig): Promise<void> {
         try {
-            this.transporter = nodemailer.createTransporter({
+            this.transporter = nodemailer.createTransport({
                 host: config.smtpHost,
                 port: config.smtpPort,
                 secure: config.secure || config.smtpPort === 465,
@@ -145,7 +149,7 @@ export class EmailService {
     async sendBulkEmails(
         recipients: Array<{ email: string; name?: string; customMessage?: string }>,
         subject: string,
-        template: EmailTemplate,
+        template: IEmailTemplate,
         resumeBuffers: Array<{ buffer: Buffer; filename: string }>,
         config: EmailConfig
     ): Promise<{ success: number; failed: number; errors: Array<{ email: string; error: string }> }> {
@@ -171,6 +175,12 @@ export class EmailService {
 
                     // Find matching resume buffer (you might want to implement logic to match resumes)
                     const resumeBuffer = resumeBuffers[0]; // Simplified - in real app, match by criteria
+
+                    if (!resumeBuffer) {
+                        failed++;
+                        errors.push({ email: recipient.email, error: 'Resume buffer not found' });
+                        return;
+                    }
 
                     const result = await this.sendResumeEmail(
                         recipient.email,
@@ -334,7 +344,7 @@ If you have any questions, please contact our support team.
      */
     async testConfiguration(config: EmailConfig): Promise<{ success: boolean; error?: string }> {
         try {
-            const testTransporter = nodemailer.createTransporter({
+            const testTransporter = nodemailer.createTransport({
                 host: config.smtpHost,
                 port: config.smtpPort,
                 secure: config.secure || config.smtpPort === 465,

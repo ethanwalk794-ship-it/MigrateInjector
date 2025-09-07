@@ -1,12 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { 
-  Box, 
-  Container, 
-  Typography, 
-  Paper, 
-  Button, 
+import {
+  Box,
+  Container,
+  Typography,
+  Paper,
+  Button,
   Alert,
   LinearProgress,
   Stack,
@@ -37,7 +37,7 @@ import {
   DialogContent,
   DialogActions,
   Checkbox,
-  FormGroup
+  FormGroup,
 } from '@mui/material';
 import {
   Email as EmailIcon,
@@ -56,7 +56,7 @@ import {
   Edit as EditIcon,
   Delete as DeleteIcon,
   Person as PersonIcon,
-  Business as BusinessIcon
+  Business as BusinessIcon,
 } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/lib/hooks/use-auth';
@@ -135,7 +135,7 @@ export default function EmailSenderPage() {
     useTemplate: false,
     templateId: '',
     customSubject: '',
-    customMessage: ''
+    customMessage: '',
   });
   const [previewDialogOpen, setPreviewDialogOpen] = useState(false);
   const [previewContent, setPreviewContent] = useState('');
@@ -151,7 +151,7 @@ export default function EmailSenderPage() {
       const [resumesRes, templatesRes, jobsRes] = await Promise.all([
         fetch('/api/resumes/upload'),
         fetch('/api/email/templates'),
-        fetch('/api/email/send')
+        fetch('/api/email/send'),
       ]);
 
       if (resumesRes.ok) {
@@ -176,15 +176,17 @@ export default function EmailSenderPage() {
   };
 
   const handleResumeSelect = (resumeId: string) => {
-    setSelectedResumes(prev => 
-      prev.includes(resumeId) 
+    setSelectedResumes(prev =>
+      prev.includes(resumeId)
         ? prev.filter(id => id !== resumeId)
         : [...prev, resumeId]
     );
   };
 
   const handleSelectAll = () => {
-    const readyResumes = resumes.filter(r => r.status === 'ready').map(r => r._id);
+    const readyResumes = resumes
+      .filter(r => r.status === 'ready')
+      .map(r => r._id);
     setSelectedResumes(readyResumes);
   };
 
@@ -201,7 +203,7 @@ export default function EmailSenderPage() {
         subject: template.subject,
         message: template.body,
         customSubject: template.subject,
-        customMessage: template.body
+        customMessage: template.body,
       }));
     }
   };
@@ -211,13 +213,13 @@ export default function EmailSenderPage() {
     if (!selectedResume) return;
 
     let preview = emailConfig.message;
-    
+
     // Replace template variables
     preview = preview.replace(/\{resumeTitle\}/g, selectedResume.title);
     preview = preview.replace(/\{recipientName\}/g, 'John Doe'); // This would come from recipient data
     preview = preview.replace(/\{senderName\}/g, user?.firstName || 'User');
     preview = preview.replace(/\{companyName\}/g, 'Company Name'); // This would come from job data
-    
+
     setPreviewContent(preview);
     setPreviewDialogOpen(true);
   };
@@ -235,7 +237,7 @@ export default function EmailSenderPage() {
 
     try {
       setSending(true);
-      
+
       const response = await fetch('/api/email/send', {
         method: 'POST',
         headers: {
@@ -247,8 +249,8 @@ export default function EmailSenderPage() {
             recipientEmail: emailConfig.recipientEmail,
             subject: emailConfig.subject,
             message: emailConfig.message,
-            attachmentFormat: emailConfig.attachmentFormat
-          }
+            attachmentFormat: emailConfig.attachmentFormat,
+          },
         }),
       });
 
@@ -261,7 +263,7 @@ export default function EmailSenderPage() {
           ...prev,
           recipientEmail: '',
           subject: '',
-          message: ''
+          message: '',
         }));
         fetchData();
       } else {
@@ -277,28 +279,40 @@ export default function EmailSenderPage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'ready': return 'success';
-      case 'processing': return 'warning';
-      case 'failed': return 'error';
-      case 'completed': return 'success';
-      case 'cancelled': return 'default';
-      default: return 'default';
+      case 'ready':
+        return 'success';
+      case 'processing':
+        return 'warning';
+      case 'failed':
+        return 'error';
+      case 'completed':
+        return 'success';
+      case 'cancelled':
+        return 'default';
+      default:
+        return 'default';
     }
   };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'ready': return <CheckCircleIcon />;
-      case 'processing': return <ScheduleIcon />;
-      case 'failed': return <ErrorIcon />;
-      case 'completed': return <CheckCircleIcon />;
-      case 'cancelled': return <SendIcon />;
-      default: return <ResumeIcon />;
+      case 'ready':
+        return <CheckCircleIcon />;
+      case 'processing':
+        return <ScheduleIcon />;
+      case 'failed':
+        return <ErrorIcon />;
+      case 'completed':
+        return <CheckCircleIcon />;
+      case 'cancelled':
+        return <SendIcon />;
+      default:
+        return <ResumeIcon />;
     }
   };
 
   if (loading) {
-    return <LoadingSpinner message="Loading email sender..." />;
+    return <LoadingSpinner message='Loading email sender...' />;
   }
 
   const readyResumes = resumes.filter(r => r.status === 'ready');
@@ -306,13 +320,18 @@ export default function EmailSenderPage() {
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', py: 4 }}>
-      <Container maxWidth="xl">
+      <Container maxWidth='xl'>
         {/* Header */}
         <Box sx={{ mb: 4 }}>
-          <Typography variant="h4" component="h1" gutterBottom sx={{ fontWeight: 700 }}>
+          <Typography
+            variant='h4'
+            component='h1'
+            gutterBottom
+            sx={{ fontWeight: 700 }}
+          >
             Email Sender
           </Typography>
-          <Typography variant="body1" color="text.secondary">
+          <Typography variant='body1' color='text.secondary'>
             Send customized resumes via email with professional templates
           </Typography>
         </Box>
@@ -320,36 +339,47 @@ export default function EmailSenderPage() {
         {/* Active Jobs */}
         {activeJobs.length > 0 && (
           <Paper sx={{ p: 3, mb: 4 }}>
-            <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
+            <Typography variant='h6' gutterBottom sx={{ fontWeight: 600 }}>
               Active Email Jobs
             </Typography>
             <Stack spacing={2}>
-              {activeJobs.map((job) => (
+              {activeJobs.map(job => (
                 <Card key={job._id}>
                   <CardContent>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                      <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        mb: 2,
+                      }}
+                    >
+                      <Typography variant='subtitle1' sx={{ fontWeight: 600 }}>
                         {job.type.replace('_', ' ').toUpperCase()}
                       </Typography>
                       <Chip
                         icon={getStatusIcon(job.status)}
                         label={job.status}
                         color={getStatusColor(job.status) as any}
-                        size="small"
+                        size='small'
                       />
                     </Box>
-                    
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+
+                    <Typography
+                      variant='body2'
+                      color='text.secondary'
+                      sx={{ mb: 2 }}
+                    >
                       {job.progress.currentStep}
                     </Typography>
-                    
+
                     <LinearProgress
-                      variant="determinate"
+                      variant='determinate'
                       value={job.progress.percentage}
                       sx={{ mb: 1 }}
                     />
-                    
-                    <Typography variant="caption" color="text.secondary">
+
+                    <Typography variant='caption' color='text.secondary'>
                       {job.progress.percentage}% complete
                     </Typography>
                   </CardContent>
@@ -363,15 +393,22 @@ export default function EmailSenderPage() {
           {/* Resume Selection */}
           <Grid item xs={12} md={6}>
             <Paper sx={{ p: 3, mb: 4 }}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-                <Typography variant="h6" sx={{ fontWeight: 600 }}>
+              <Box
+                sx={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  mb: 3,
+                }}
+              >
+                <Typography variant='h6' sx={{ fontWeight: 600 }}>
                   Select Resumes to Send
                 </Typography>
-                <Stack direction="row" spacing={1}>
-                  <Button size="small" onClick={handleSelectAll}>
+                <Stack direction='row' spacing={1}>
+                  <Button size='small' onClick={handleSelectAll}>
                     Select All ({readyResumes.length})
                   </Button>
-                  <Button size="small" onClick={handleDeselectAll}>
+                  <Button size='small' onClick={handleDeselectAll}>
                     Deselect All
                   </Button>
                 </Stack>
@@ -379,45 +416,73 @@ export default function EmailSenderPage() {
 
               {readyResumes.length === 0 ? (
                 <Box sx={{ textAlign: 'center', py: 4 }}>
-                  <ResumeIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
-                  <Typography variant="h6" gutterBottom>
+                  <ResumeIcon
+                    sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }}
+                  />
+                  <Typography variant='h6' gutterBottom>
                     No ready resumes
                   </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                  <Typography
+                    variant='body2'
+                    color='text.secondary'
+                    sx={{ mb: 3 }}
+                  >
                     Process resumes first before sending
                   </Typography>
-                  <Button variant="contained" href="/resume-processor">
+                  <Button variant='contained' href='/resume-processor'>
                     Process Resumes
                   </Button>
                 </Box>
               ) : (
                 <Grid container spacing={2}>
-                  {readyResumes.map((resume) => (
+                  {readyResumes.map(resume => (
                     <Grid item xs={12} key={resume._id}>
-                      <Card 
-                        sx={{ 
+                      <Card
+                        sx={{
                           cursor: 'pointer',
                           border: selectedResumes.includes(resume._id) ? 2 : 1,
-                          borderColor: selectedResumes.includes(resume._id) ? 'primary.main' : 'divider'
+                          borderColor: selectedResumes.includes(resume._id)
+                            ? 'primary.main'
+                            : 'divider',
                         }}
                         onClick={() => handleResumeSelect(resume._id)}
                       >
                         <CardContent>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                            <ResumeIcon color="primary" />
-                            <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                          <Box
+                            sx={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 1,
+                              mb: 1,
+                            }}
+                          >
+                            <ResumeIcon color='primary' />
+                            <Typography
+                              variant='subtitle1'
+                              sx={{ fontWeight: 600 }}
+                            >
                               {resume.title}
                             </Typography>
                             {selectedResumes.includes(resume._id) && (
-                              <CheckCircleIcon color="primary" />
+                              <CheckCircleIcon color='primary' />
                             )}
                           </Box>
-                          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                          <Typography
+                            variant='body2'
+                            color='text.secondary'
+                            sx={{ mb: 1 }}
+                          >
                             {resume.filename}
                           </Typography>
-                          <Stack direction="row" spacing={1}>
-                            <Chip label={`${resume.projects} projects`} size="small" />
-                            <Chip label={`${resume.techStacks} tech stacks`} size="small" />
+                          <Stack direction='row' spacing={1}>
+                            <Chip
+                              label={`${resume.projects} projects`}
+                              size='small'
+                            />
+                            <Chip
+                              label={`${resume.techStacks} tech stacks`}
+                              size='small'
+                            />
                           </Stack>
                         </CardContent>
                       </Card>
@@ -431,21 +496,23 @@ export default function EmailSenderPage() {
           {/* Email Configuration */}
           <Grid item xs={12} md={6}>
             <Paper sx={{ p: 3, mb: 4 }}>
-              <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
+              <Typography variant='h6' gutterBottom sx={{ fontWeight: 600 }}>
                 Email Configuration
               </Typography>
-              
+
               <Grid container spacing={3}>
                 <Grid item xs={12}>
                   <TextField
                     fullWidth
-                    label="Recipient Email"
-                    type="email"
+                    label='Recipient Email'
+                    type='email'
                     value={emailConfig.recipientEmail}
-                    onChange={(e) => setEmailConfig(prev => ({
-                      ...prev,
-                      recipientEmail: e.target.value
-                    }))}
+                    onChange={e =>
+                      setEmailConfig(prev => ({
+                        ...prev,
+                        recipientEmail: e.target.value,
+                      }))
+                    }
                     required
                   />
                 </Grid>
@@ -455,12 +522,12 @@ export default function EmailSenderPage() {
                     <InputLabel>Email Template</InputLabel>
                     <Select<string>
                       value={emailConfig.templateId ?? ''}
-                      onChange={(e) => handleTemplateChange(e.target.value ?? '')}
+                      onChange={e => handleTemplateChange(e.target.value ?? '')}
                     >
-                      <MenuItem value="">
+                      <MenuItem value=''>
                         <em>Custom Message</em>
                       </MenuItem>
-                      {templates.map((template) => (
+                      {templates.map(template => (
                         <MenuItem key={template._id} value={template._id}>
                           {template.name}
                         </MenuItem>
@@ -472,12 +539,14 @@ export default function EmailSenderPage() {
                 <Grid item xs={12}>
                   <TextField
                     fullWidth
-                    label="Subject"
+                    label='Subject'
                     value={emailConfig.subject}
-                    onChange={(e) => setEmailConfig(prev => ({
-                      ...prev,
-                      subject: e.target.value
-                    }))}
+                    onChange={e =>
+                      setEmailConfig(prev => ({
+                        ...prev,
+                        subject: e.target.value,
+                      }))
+                    }
                     required
                   />
                 </Grid>
@@ -485,14 +554,16 @@ export default function EmailSenderPage() {
                 <Grid item xs={12}>
                   <TextField
                     fullWidth
-                    label="Message"
+                    label='Message'
                     multiline
                     rows={6}
                     value={emailConfig.message}
-                    onChange={(e) => setEmailConfig(prev => ({
-                      ...prev,
-                      message: e.target.value
-                    }))}
+                    onChange={e =>
+                      setEmailConfig(prev => ({
+                        ...prev,
+                        message: e.target.value,
+                      }))
+                    }
                     required
                   />
                 </Grid>
@@ -502,32 +573,39 @@ export default function EmailSenderPage() {
                     <InputLabel>Attachment Format</InputLabel>
                     <Select
                       value={emailConfig.attachmentFormat}
-                      onChange={(e) => setEmailConfig(prev => ({
-                        ...prev,
-                        attachmentFormat: e.target.value as 'docx' | 'pdf' | 'html'
-                      }))}
+                      onChange={e =>
+                        setEmailConfig(prev => ({
+                          ...prev,
+                          attachmentFormat: e.target.value as
+                            | 'docx'
+                            | 'pdf'
+                            | 'html',
+                        }))
+                      }
                     >
-                      <MenuItem value="docx">DOCX</MenuItem>
-                      <MenuItem value="pdf">PDF</MenuItem>
-                      <MenuItem value="html">HTML</MenuItem>
+                      <MenuItem value='docx'>DOCX</MenuItem>
+                      <MenuItem value='pdf'>PDF</MenuItem>
+                      <MenuItem value='html'>HTML</MenuItem>
                     </Select>
                   </FormControl>
                 </Grid>
 
                 <Grid item xs={12}>
-                  <Stack direction="row" spacing={2}>
+                  <Stack direction='row' spacing={2}>
                     <Button
-                      variant="outlined"
+                      variant='outlined'
                       startIcon={<VisibilityIcon />}
                       onClick={generatePreview}
-                      disabled={selectedResumes.length === 0 || !emailConfig.message}
+                      disabled={
+                        selectedResumes.length === 0 || !emailConfig.message
+                      }
                     >
                       Preview
                     </Button>
                     <Button
-                      variant="outlined"
+                      variant='outlined'
                       startIcon={<AddIcon />}
-                      href="/email-templates"
+                      href='/email-templates'
                     >
                       Manage Templates
                     </Button>
@@ -540,64 +618,85 @@ export default function EmailSenderPage() {
 
         {/* Send Controls */}
         <Paper sx={{ p: 3 }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-            <Typography variant="h6" sx={{ fontWeight: 600 }}>
+          <Box
+            sx={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              mb: 3,
+            }}
+          >
+            <Typography variant='h6' sx={{ fontWeight: 600 }}>
               Send Emails
             </Typography>
-            <Stack direction="row" spacing={1}>
+            <Stack direction='row' spacing={1}>
               <Button
-                variant="outlined"
+                variant='outlined'
                 startIcon={<RefreshIcon />}
                 onClick={fetchData}
               >
                 Refresh
               </Button>
               <Button
-                variant="contained"
-                size="large"
+                variant='contained'
+                size='large'
                 startIcon={<SendIcon />}
                 onClick={sendEmails}
-                disabled={selectedResumes.length === 0 || !emailConfig.recipientEmail || sending}
+                disabled={
+                  selectedResumes.length === 0 ||
+                  !emailConfig.recipientEmail ||
+                  sending
+                }
               >
-                {sending ? 'Sending...' : `Send ${selectedResumes.length} Email${selectedResumes.length > 1 ? 's' : ''}`}
+                {sending
+                  ? 'Sending...'
+                  : `Send ${selectedResumes.length} Email${selectedResumes.length > 1 ? 's' : ''}`}
               </Button>
             </Stack>
           </Box>
 
           {selectedResumes.length > 0 && (
-            <Alert severity="info">
-              <Typography variant="body2">
-                Ready to send {selectedResumes.length} resume{selectedResumes.length > 1 ? 's' : ''} to {emailConfig.recipientEmail}
+            <Alert severity='info'>
+              <Typography variant='body2'>
+                Ready to send {selectedResumes.length} resume
+                {selectedResumes.length > 1 ? 's' : ''} to{' '}
+                {emailConfig.recipientEmail}
               </Typography>
             </Alert>
           )}
         </Paper>
 
         {/* Preview Dialog */}
-        <Dialog open={previewDialogOpen} onClose={() => setPreviewDialogOpen(false)} maxWidth="md" fullWidth>
+        <Dialog
+          open={previewDialogOpen}
+          onClose={() => setPreviewDialogOpen(false)}
+          maxWidth='md'
+          fullWidth
+        >
           <DialogTitle>Email Preview</DialogTitle>
           <DialogContent>
             <Box sx={{ mb: 2 }}>
-              <Typography variant="subtitle2" gutterBottom>
+              <Typography variant='subtitle2' gutterBottom>
                 Subject: {emailConfig.subject}
               </Typography>
-              <Typography variant="subtitle2" gutterBottom>
+              <Typography variant='subtitle2' gutterBottom>
                 To: {emailConfig.recipientEmail}
               </Typography>
             </Box>
             <Divider sx={{ mb: 2 }} />
-            <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
+            <Typography variant='body2' sx={{ whiteSpace: 'pre-wrap' }}>
               {previewContent}
             </Typography>
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => setPreviewDialogOpen(false)}>
-              Close
-            </Button>
-            <Button variant="contained" onClick={() => {
-              setPreviewDialogOpen(false);
-              sendEmails();
-            }}>
+            <Button onClick={() => setPreviewDialogOpen(false)}>Close</Button>
+            <Button
+              variant='contained'
+              onClick={() => {
+                setPreviewDialogOpen(false);
+                sendEmails();
+              }}
+            >
               Send Email
             </Button>
           </DialogActions>

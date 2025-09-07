@@ -1,4 +1,6 @@
-import mongoose, { Document, Schema } from 'mongoose';
+'use client';
+
+import mongoose, { Document, Schema, Model } from 'mongoose';
 
 export interface IEmailTemplate extends Document {
   _id: string;
@@ -64,6 +66,15 @@ export interface IEmailTemplate extends Document {
   renderTemplate(data: Record<string, any>): { subject: string; body: string; htmlBody?: string };
   markAsUsed(success: boolean, error?: string): void;
   clone(newName: string): Promise<IEmailTemplate>;
+}
+
+// Define the interface for static methods
+interface EmailTemplateModel extends Model<IEmailTemplate> {
+  findByUser(userId: string): Promise<IEmailTemplate[]>;
+  findByCategory(category: string): Promise<IEmailTemplate[]>;
+  findPublic(): Promise<IEmailTemplate[]>;
+  findDefault(): Promise<IEmailTemplate[]>;
+  findActive(): Promise<IEmailTemplate[]>;
 }
 
 const VariableSchema = new Schema({
@@ -169,7 +180,7 @@ const UsageSchema = new Schema({
   }
 }, { _id: false });
 
-const EmailTemplateSchema = new Schema<IEmailTemplate>(
+const EmailTemplateSchema = new Schema<IEmailTemplate, EmailTemplateModel>(
   {
     userId: {
       type: String,
@@ -261,7 +272,7 @@ EmailTemplateSchema.index({ name: 'text', description: 'text' });
 
 // Instance methods
 EmailTemplateSchema.methods.addVariable = function(variable: IEmailTemplate['variables'][0]): void {
-  const existingIndex = this.variables.findIndex(v => v.name === variable.name);
+  const existingIndex = this.variables.findIndex((v: IEmailTemplate['variables'][0]) => v.name === variable.name);
   
   if (existingIndex >= 0) {
     this.variables[existingIndex] = variable;
@@ -273,7 +284,7 @@ EmailTemplateSchema.methods.addVariable = function(variable: IEmailTemplate['var
 };
 
 EmailTemplateSchema.methods.removeVariable = function(variableName: string): void {
-  this.variables = this.variables.filter(v => v.name !== variableName);
+  this.variables = this.variables.filter((v: IEmailTemplate['variables'][0]) => v.name !== variableName);
   this.markModified('variables');
 };
 
@@ -281,7 +292,7 @@ EmailTemplateSchema.methods.updateVariable = function(
   variableName: string, 
   updates: Partial<IEmailTemplate['variables'][0]>
 ): void {
-  const variable = this.variables.find(v => v.name === variableName);
+  const variable = this.variables.find((v: IEmailTemplate['variables'][0]) => v.name === variableName);
   if (variable) {
     Object.assign(variable, updates);
     this.markModified('variables');
@@ -298,14 +309,14 @@ EmailTemplateSchema.methods.renderTemplate = function(data: Record<string, any>)
   let htmlBody = this.htmlBody;
   
   // Replace variables in subject
-  this.variables.forEach(variable => {
+  this.variables.forEach((variable: IEmailTemplate['variables'][0]) => {
     const value = data[variable.name] || variable.defaultValue || `{{${variable.name}}}`;
     const regex = new RegExp(`{{${variable.name}}}`, 'g');
     subject = subject.replace(regex, value);
   });
   
   // Replace variables in body
-  this.variables.forEach(variable => {
+  this.variables.forEach((variable: IEmailTemplate['variables'][0]) => {
     const value = data[variable.name] || variable.defaultValue || `{{${variable.name}}}`;
     const regex = new RegExp(`{{${variable.name}}}`, 'g');
     body = body.replace(regex, value);
@@ -355,7 +366,7 @@ EmailTemplateSchema.methods.clone = async function(newName: string): Promise<IEm
     lastError: null
   };
   
-  const EmailTemplate = mongoose.model<IEmailTemplate>('EmailTemplate');
+  const EmailTemplate = mongoose.model<IEmailTemplate, EmailTemplateModel>('EmailTemplate');
   return new EmailTemplate(clonedData).save();
 };
 
@@ -379,5 +390,8 @@ EmailTemplateSchema.statics.findDefault = function() {
 EmailTemplateSchema.statics.findActive = function() {
   return this.find({ 'settings.isActive': true }).sort({ createdAt: -1 });
 };
+
+// export default mongoose.models.EmailTemplate as EmailTemplateModel || 
+//   mongoose.model<IEmailTemplate, EmailTemplateModel>('EmailTemplate', EmailTemplateSchema);
 
 export default mongoose.models.EmailTemplate || mongoose.model<IEmailTemplate>('EmailTemplate', EmailTemplateSchema);

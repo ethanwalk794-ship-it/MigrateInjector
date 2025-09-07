@@ -1,5 +1,6 @@
 #!/usr/bin/env tsx
 
+
 import { Worker, Job } from 'bullmq';
 import { getRedisConnection } from '../src/lib/queue/redis';
 import { processResumeJob } from '../src/lib/queue/processors/resume-processor';
@@ -27,8 +28,9 @@ worker.on('failed', (job: Job | undefined, err: Error) => {
   console.error(`❌ Resume processing job ${job?.id} failed:`, err.message);
 });
 
-worker.on('progress', (job: Job, progress: number) => {
-  console.log(`📊 Resume processing job ${job.id} progress: ${progress}%`);
+worker.on('progress', (job: Job, progress: number | object) => {
+  const pct = typeof progress === 'number' ? progress : 0;
+  console.log(`📊 Resume processing job ${job.id} progress: ${pct}%`);
 });
 
 worker.on('error', (err: Error) => {

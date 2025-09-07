@@ -1,6 +1,8 @@
+'use client';
+
 import { Queue, Worker, Job } from 'bullmq';
 import { getRedisConnection } from './redis';
-import { resumeProcessor } from './processors/resume-processor';
+import { processResumeJob } from './processors/resume-processor';
 import { processEmailJob } from './processors/email-processor';
 import { processBulkJob } from './processors/bulk-processor';
 
@@ -60,8 +62,9 @@ resumeProcessingWorker.on('failed', (job: Job | undefined, err: Error) => {
   console.error(`❌ Resume processing job ${job?.id} failed:`, err.message);
 });
 
-resumeProcessingWorker.on('progress', (job: Job, progress: number) => {
-  console.log(`📊 Resume processing job ${job.id} progress: ${progress}%`);
+resumeProcessingWorker.on('progress', (job: Job, progress: number | object) => {
+  const pct = typeof progress === 'number' ? progress : 0;
+  console.log(`📊 Resume processing job ${job.id} progress: ${pct}%`);
 });
 
 emailSendingWorker.on('completed', (job: Job) => {
@@ -72,8 +75,9 @@ emailSendingWorker.on('failed', (job: Job | undefined, err: Error) => {
   console.error(`❌ Email sending job ${job?.id} failed:`, err.message);
 });
 
-emailSendingWorker.on('progress', (job: Job, progress: number) => {
-  console.log(`📊 Email sending job ${job.id} progress: ${progress}%`);
+emailSendingWorker.on('progress', (job: Job, progress: number | object) => {
+  const pct = typeof progress === 'number' ? progress : 0;
+  console.log(`📊 Email sending job ${job.id} progress: ${pct}%`);
 });
 
 bulkProcessingWorker.on('completed', (job: Job) => {
@@ -84,8 +88,9 @@ bulkProcessingWorker.on('failed', (job: Job | undefined, err: Error) => {
   console.error(`❌ Bulk processing job ${job?.id} failed:`, err.message);
 });
 
-bulkProcessingWorker.on('progress', (job: Job, progress: number) => {
-  console.log(`📊 Bulk processing job ${job.id} progress: ${progress}%`);
+bulkProcessingWorker.on('progress', (job: Job, progress: number | object) => {
+  const pct = typeof progress === 'number' ? progress : 0;
+  console.log(`📊 Bulk processing job ${job.id} progress: ${pct}%`);
 });
 
 // Queue management functions

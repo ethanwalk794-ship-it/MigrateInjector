@@ -1,3 +1,5 @@
+'use client';
+
 import mongoose, { Document, Schema } from 'mongoose';
 
 export interface IJob extends Document {
@@ -400,7 +402,7 @@ JobSchema.methods.addStep = function (stepName: string): void {
 };
 
 JobSchema.methods.completeStep = function (stepName: string, error?: string): void {
-    const step = this.progress.steps.find(s => s.name === stepName);
+    const step = this.progress.steps.find((s: { name: string }) => s.name === stepName);
     if (step) {
         step.status = error ? 'failed' : 'completed';
         step.completedAt = new Date();

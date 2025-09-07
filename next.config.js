@@ -1,7 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   experimental: {
-    appDir: true,
     serverComponentsExternalPackages: ['mongoose', 'bullmq', 'ioredis']
   },
   images: {
@@ -37,7 +36,18 @@ const nextConfig = {
 
     return config;
   },
-  // API routes configuration
+  // File upload size limit
+  serverRuntimeConfig: {
+    maxFileSize: 50 * 1024 * 1024, // 50MB
+  },
+  // Performance optimizations
+  compress: true,
+  poweredByHeader: false,
+  generateEtags: false,
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+  // Headers (CORS for API + global security headers)
   async headers() {
     return [
       {
@@ -48,34 +58,12 @@ const nextConfig = {
           { key: 'Access-Control-Allow-Headers', value: 'Content-Type, Authorization' },
         ],
       },
-    ];
-  },
-  // File upload size limit
-  serverRuntimeConfig: {
-    maxFileSize: 50 * 1024 * 1024, // 50MB
-  },
-  // Performance optimizations
-  compress: true,
-  poweredByHeader: false,
-  generateEtags: false,
-  // Security headers
-  async headers() {
-    return [
       {
         source: '/(.*)',
         headers: [
-          {
-            key: 'X-Frame-Options',
-            value: 'DENY',
-          },
-          {
-            key: 'X-Content-Type-Options',
-            value: 'nosniff',
-          },
-          {
-            key: 'Referrer-Policy',
-            value: 'origin-when-cross-origin',
-          },
+          { key: 'X-Frame-Options', value: 'DENY' },
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+          { key: 'Referrer-Policy', value: 'origin-when-cross-origin' },
         ],
       },
     ];

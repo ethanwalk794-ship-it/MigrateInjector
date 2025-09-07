@@ -1,3 +1,5 @@
+'use client';
+
 import mongoose, { Document, Schema } from 'mongoose';
 
 export interface IRequirement extends Document {
@@ -376,14 +378,14 @@ RequirementSchema.methods.addTechnicalSkill = function (
 };
 
 RequirementSchema.methods.removeTechnicalSkill = function (skill: string): void {
-    this.technicalSkills.required = this.technicalSkills.required.filter(s => s !== skill);
-    this.technicalSkills.preferred = this.technicalSkills.preferred.filter(s => s !== skill);
+    this.technicalSkills.required = this.technicalSkills.required.filter((s: string) => s !== skill);
+    this.technicalSkills.preferred = this.technicalSkills.preferred.filter((s: string) => s !== skill);
 
     // Remove from all categories
     Object.keys(this.technicalSkills.categories).forEach(category => {
         const categoryList = this.technicalSkills.categories[category as keyof typeof this.technicalSkills.categories];
         this.technicalSkills.categories[category as keyof typeof this.technicalSkills.categories] =
-            categoryList.filter(s => s !== skill);
+            categoryList.filter((s: string) => s !== skill);
     });
 };
 

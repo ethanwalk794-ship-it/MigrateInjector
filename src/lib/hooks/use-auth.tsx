@@ -228,8 +228,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     return (
-        <AuthContext.Provider value= { value } >
-        { children }
+        <AuthContext.Provider value={value}>
+            {children}
         </AuthContext.Provider>
     );
 }
@@ -264,6 +264,8 @@ export function withAuth<P extends object>(
             return null;
         }
 
-        return <Component { ...props } />;
+        return <Component {...props} />;
     };
 }
+
+

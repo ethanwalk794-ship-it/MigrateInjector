@@ -1,3 +1,5 @@
+'use client';
+
 import { NextRequest } from 'next/server';
 import jwt from 'jsonwebtoken';
 import connectDB from '@/lib/db/connection';
@@ -35,7 +37,10 @@ export async function getCurrentUser(request: NextRequest): Promise<Authenticate
         await connectDB();
 
         // Find user
-        const user = await User.findById(decoded.userId).select('-password');
+        const user = await (User as any)
+            .findById(decoded.userId)
+            .select('-password')
+            .exec();
         if (!user || !user.isActive) {
             return null;
         }
@@ -57,16 +62,19 @@ export async function getCurrentUser(request: NextRequest): Promise<Authenticate
 }
 
 export function generateToken(userId: string): string {
-    return jwt.sign(
-        { userId },
-        JWT_SECRET,
-        { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
-    );
+    const secret = JWT_SECRET as jwt.Secret;
+    let expiresIn: jwt.SignOptions['expiresIn'] = '7d';
+    if (process.env.JWT_EXPIRES_IN) {
+        expiresIn = process.env.JWT_EXPIRES_IN as unknown as jwt.SignOptions['expiresIn'];
+    }
+    const options: jwt.SignOptions = { expiresIn };
+    return jwt.sign({ userId }, secret, options);
 }
 
 export function verifyToken(token: string): any {
     try {
-        return jwt.verify(token, JWT_SECRET);
+        const secret = JWT_SECRET as jwt.Secret;
+        return jwt.verify(token, secret);
     } catch (error) {
         return null;
     }

@@ -1,6 +1,8 @@
+'use client';
+
 import { Job } from 'bullmq';
 import { Logger } from '../../utils/logger';
-import { EmailService } from '../../utils/email-service';
+import { EmailService, EmailData } from '../../utils/email-service';
 
 const logger = Logger.getInstance();
 
@@ -28,13 +30,21 @@ export async function processEmailJob(job: Job<EmailJobData>): Promise<any> {
 
         const emailService = EmailService.getInstance();
 
-        // Initialize email service with SMTP config
-        await emailService.initialize(smtpConfig);
+        // Initialize email service with mapped SMTP config
+        await emailService.initialize({
+            smtpHost: smtpConfig.host,
+            smtpPort: smtpConfig.port,
+            smtpUser: smtpConfig.user,
+            smtpPassword: smtpConfig.password,
+            fromEmail: 'no-reply@localhost',
+            fromName: 'Resume Customizer',
+            secure: smtpConfig.port === 465,
+        });
 
         await job.updateProgress(30);
 
         // Prepare email data
-        const emailData = {
+        const emailData: EmailData = {
             to,
             subject,
             html: message,

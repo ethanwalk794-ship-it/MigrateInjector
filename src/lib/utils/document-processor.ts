@@ -1,6 +1,8 @@
+'use client';
+
 import mammoth from 'mammoth';
 import { Document, Packer, Paragraph, TextRun, HeadingLevel } from 'docx';
-import { Resume } from '@/lib/db/models/resume';
+import { IResume } from '@/lib/db/models/resume';
 
 export interface ProcessingOptions {
     bulletFormatting: boolean;
@@ -60,7 +62,7 @@ export class DocumentProcessor {
      * Process resume with given options
      */
     async processResume(
-        resume: Resume,
+        resume: IResume,
         options: ProcessingOptions
     ): Promise<ProcessingResult> {
         const startTime = Date.now();
@@ -202,8 +204,8 @@ export class DocumentProcessor {
             }
         });
 
-        // Remove duplicates and return
-        return [...new Set(techStacks)];
+        // Remove duplicates without relying on Set iteration
+        return techStacks.filter((item, index) => techStacks.indexOf(item) === index);
     }
 
     /**
@@ -262,8 +264,7 @@ export class DocumentProcessor {
                         // Check for bullet points
                         if (line.trim().startsWith('•') || line.trim().startsWith('-') || line.trim().startsWith('*')) {
                             return new TextRun({
-                                text: line.trim(),
-                                bullet: { level: 0 }
+                                text: line.trim()
                             });
                         }
 
@@ -273,8 +274,8 @@ export class DocumentProcessor {
                             return new TextRun({
                                 children: parts.map((part, index) =>
                                     index % 2 === 1
-                                        ? { text: part, bold: true }
-                                        : { text: part }
+                                        ? new TextRun({ text: part, bold: true })
+                                        : new TextRun({ text: part })
                                 )
                             });
                         }
@@ -283,12 +284,14 @@ export class DocumentProcessor {
                     }),
                     spacing: { after: 200 }
                 });
-            }).filter(Boolean);
+            });
+
+            const filteredParagraphs = paragraphs.filter((p): p is Paragraph => p !== null);
 
             const doc = new Document({
                 sections: [{
                     properties: {},
-                    children: paragraphs
+                    children: filteredParagraphs
                 }]
             });
 

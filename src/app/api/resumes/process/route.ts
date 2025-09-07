@@ -1,3 +1,5 @@
+'use client';
+
 import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/lib/db/connection';
 import Resume from '@/lib/db/models/resume';
@@ -19,6 +21,30 @@ const ProcessResumeSchema = z.object({
   }).optional()
 });
 
+// Helper function to safely call Mongoose methods
+const safeFindOne = async (model: any, query: any, projection: any = null) => {
+  if (projection) {
+    return model.findOne(query).select(projection).exec();
+  }
+  return model.findOne(query).exec();
+};
+
+const safeFind = async (model: any, query: any, options: any = {}) => {
+  let queryBuilder = model.find(query);
+  
+  if (options.select) {
+    queryBuilder = queryBuilder.select(options.select);
+  }
+  if (options.sort) {
+    queryBuilder = queryBuilder.sort(options.sort);
+  }
+  if (options.limit) {
+    queryBuilder = queryBuilder.limit(options.limit);
+  }
+  
+  return queryBuilder.exec();
+};
+
 export async function POST(request: NextRequest) {
   try {
     // Check authentication
@@ -36,10 +62,10 @@ export async function POST(request: NextRequest) {
     // Parse and validate request body
     const body = await request.json();
     const validationResult = ProcessResumeSchema.safeParse(body);
-    
+
     if (!validationResult.success) {
       return NextResponse.json(
-        { 
+        {
           error: 'Validation failed',
           details: validationResult.error.errors
         },
@@ -49,10 +75,10 @@ export async function POST(request: NextRequest) {
 
     const { resumeId, techStacks, processingOptions } = validationResult.data;
 
-    // Find resume
-    const resume = await Resume.findOne({ 
-      _id: resumeId, 
-      userId: user._id 
+    // Find resume using safe helper
+    const resume = await safeFindOne(Resume, {
+      _id: resumeId,
+      userId: user._id
     });
 
     if (!resume) {
@@ -81,7 +107,7 @@ export async function POST(request: NextRequest) {
     resume.customization.techStacks = techStacks;
     resume.status = 'processing';
     resume.processing.version += 1;
-    
+
     await resume.save();
 
     // Create processing job
@@ -144,9 +170,9 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Resume processing error:', error);
-    
+
     return NextResponse.json(
-      { 
+      {
         error: 'Processing failed',
         message: error instanceof Error ? error.message : 'Unknown error'
       },
@@ -175,11 +201,11 @@ export async function GET(request: NextRequest) {
     const jobId = searchParams.get('jobId');
 
     if (resumeId) {
-      // Get processing status for specific resume
-      const resume = await Resume.findOne({ 
-        _id: resumeId, 
-        userId: user._id 
-      }).select('processing status');
+      // Get processing status for specific resume using safe helper
+      const resume = await safeFindOne(Resume, {
+        _id: resumeId,
+        userId: user._id
+      }, 'processing status');
 
       if (!resume) {
         return NextResponse.json(
@@ -199,10 +225,10 @@ export async function GET(request: NextRequest) {
     }
 
     if (jobId) {
-      // Get processing status for specific job
-      const job = await Job.findOne({ 
-        _id: jobId, 
-        userId: user._id 
+      // Get processing status for specific job using safe helper
+      const job = await safeFindOne(Job, {
+        _id: jobId,
+        userId: user._id
       });
 
       if (!job) {
@@ -228,14 +254,15 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Get all processing jobs for user
-    const jobs = await Job.find({ 
+    // Get all processing jobs for user using safe helper
+    const jobs = await safeFind(Job, {
       userId: user._id,
       type: 'resume_processing'
-    })
-    .select('-data')
-    .sort({ createdAt: -1 })
-    .limit(20);
+    }, {
+      select: '-data',
+      sort: { createdAt: -1 },
+      limit: 20
+    });
 
     return NextResponse.json({
       success: true,
@@ -246,9 +273,9 @@ export async function GET(request: NextRequest) {
 
   } catch (error) {
     console.error('Get processing status error:', error);
-    
+
     return NextResponse.json(
-      { 
+      {
         error: 'Failed to get processing status',
         message: error instanceof Error ? error.message : 'Unknown error'
       },

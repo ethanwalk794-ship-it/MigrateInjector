@@ -1,12 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { 
-  Box, 
-  Container, 
-  Typography, 
-  Paper, 
-  Button, 
+import {
+  Box,
+  Container,
+  Typography,
+  Paper,
+  Button,
   Alert,
   Stack,
   Chip,
@@ -37,7 +37,7 @@ import {
   Tabs,
   Tab,
   Avatar,
-  ListItemAvatar
+  ListItemAvatar,
 } from '@mui/material';
 import {
   Settings as SettingsIcon,
@@ -56,7 +56,7 @@ import {
   CheckCircle as CheckCircleIcon,
   Error as ErrorIcon,
   Info as InfoIcon,
-  ExpandMore as ExpandMoreIcon
+  ExpandMore as ExpandMoreIcon,
 } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/lib/hooks/use-auth';
@@ -119,17 +119,13 @@ function TabPanel(props: TabPanelProps) {
 
   return (
     <div
-      role="tabpanel"
+      role='tabpanel'
       hidden={value !== index}
       id={`settings-tabpanel-${index}`}
       aria-labelledby={`settings-tab-${index}`}
       {...other}
     >
-      {value === index && (
-        <Box sx={{ p: 3 }}>
-          {children}
-        </Box>
-      )}
+      {value === index && <Box sx={{ p: 3 }}>{children}</Box>}
     </div>
   );
 }
@@ -146,7 +142,7 @@ export default function SettingsPage() {
       email: '',
       company: '',
       jobTitle: '',
-      phone: ''
+      phone: '',
     },
     preferences: {
       theme: 'auto',
@@ -157,15 +153,15 @@ export default function SettingsPage() {
         email: true,
         push: true,
         processing: true,
-        errors: true
-      }
+        errors: true,
+      },
     },
     processing: {
       defaultFormat: 'docx',
       autoProcess: false,
       maxFileSize: 10,
       concurrentJobs: 3,
-      retryAttempts: 3
+      retryAttempts: 3,
     },
     email: {
       smtpHost: '',
@@ -174,14 +170,14 @@ export default function SettingsPage() {
       smtpPassword: '',
       fromEmail: '',
       fromName: '',
-      signature: ''
+      signature: '',
     },
     security: {
       twoFactorEnabled: false,
       sessionTimeout: 30,
       passwordExpiry: 90,
-      loginNotifications: true
-    }
+      loginNotifications: true,
+    },
   });
 
   useEffect(() => {
@@ -201,8 +197,8 @@ export default function SettingsPage() {
             email: user.email || '',
             company: user.company || '',
             jobTitle: user.jobTitle || '',
-            phone: user.phone || ''
-          }
+            phone: user.phone || '',
+          },
         }));
       }
     } catch (error) {
@@ -216,16 +212,18 @@ export default function SettingsPage() {
   const handleSave = async () => {
     try {
       setSaving(true);
-      
+
       // Update profile
-      if (settings.profile.firstName !== user?.firstName || 
-          settings.profile.lastName !== user?.lastName) {
+      if (
+        settings.profile.firstName !== user?.firstName ||
+        settings.profile.lastName !== user?.lastName
+      ) {
         await updateProfile({
           firstName: settings.profile.firstName,
           lastName: settings.profile.lastName,
           company: settings.profile.company,
           jobTitle: settings.profile.jobTitle,
-          phone: settings.profile.phone
+          phone: settings.profile.phone,
         });
       }
 
@@ -244,103 +242,122 @@ export default function SettingsPage() {
   };
 
   if (loading) {
-    return <LoadingSpinner message="Loading settings..." />;
+    return <LoadingSpinner message='Loading settings...' />;
   }
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', py: 4 }}>
-      <Container maxWidth="lg">
+      <Container maxWidth='lg'>
         {/* Header */}
         <Box sx={{ mb: 4 }}>
-          <Typography variant="h4" component="h1" gutterBottom sx={{ fontWeight: 700 }}>
+          <Typography
+            variant='h4'
+            component='h1'
+            gutterBottom
+            sx={{ fontWeight: 700 }}
+          >
             Settings
           </Typography>
-          <Typography variant="body1" color="text.secondary">
+          <Typography variant='body1' color='text.secondary'>
             Manage your account preferences and application settings
           </Typography>
         </Box>
 
         <Paper sx={{ width: '100%' }}>
           <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-            <Tabs value={tabValue} onChange={handleTabChange} aria-label="settings tabs">
-              <Tab icon={<PersonIcon />} label="Profile" />
-              <Tab icon={<PaletteIcon />} label="Preferences" />
-              <Tab icon={<SpeedIcon />} label="Processing" />
-              <Tab icon={<EmailIcon />} label="Email" />
-              <Tab icon={<SecurityIcon />} label="Security" />
+            <Tabs
+              value={tabValue}
+              onChange={handleTabChange}
+              aria-label='settings tabs'
+            >
+              <Tab icon={<PersonIcon />} label='Profile' />
+              <Tab icon={<PaletteIcon />} label='Preferences' />
+              <Tab icon={<SpeedIcon />} label='Processing' />
+              <Tab icon={<EmailIcon />} label='Email' />
+              <Tab icon={<SecurityIcon />} label='Security' />
             </Tabs>
           </Box>
 
           {/* Profile Tab */}
           <TabPanel value={tabValue} index={0}>
-            <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
+            <Typography variant='h6' gutterBottom sx={{ fontWeight: 600 }}>
               Profile Information
             </Typography>
-            
+
             <Grid container spacing={3}>
               <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
-                  label="First Name"
+                  label='First Name'
                   value={settings.profile.firstName}
-                  onChange={(e) => setSettings(prev => ({
-                    ...prev,
-                    profile: { ...prev.profile, firstName: e.target.value }
-                  }))}
+                  onChange={e =>
+                    setSettings(prev => ({
+                      ...prev,
+                      profile: { ...prev.profile, firstName: e.target.value },
+                    }))
+                  }
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
-                  label="Last Name"
+                  label='Last Name'
                   value={settings.profile.lastName}
-                  onChange={(e) => setSettings(prev => ({
-                    ...prev,
-                    profile: { ...prev.profile, lastName: e.target.value }
-                  }))}
+                  onChange={e =>
+                    setSettings(prev => ({
+                      ...prev,
+                      profile: { ...prev.profile, lastName: e.target.value },
+                    }))
+                  }
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
-                  label="Email"
-                  type="email"
+                  label='Email'
+                  type='email'
                   value={settings.profile.email}
                   disabled
-                  helperText="Email cannot be changed"
+                  helperText='Email cannot be changed'
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
-                  label="Phone"
+                  label='Phone'
                   value={settings.profile.phone}
-                  onChange={(e) => setSettings(prev => ({
-                    ...prev,
-                    profile: { ...prev.profile, phone: e.target.value }
-                  }))}
+                  onChange={e =>
+                    setSettings(prev => ({
+                      ...prev,
+                      profile: { ...prev.profile, phone: e.target.value },
+                    }))
+                  }
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
-                  label="Company"
+                  label='Company'
                   value={settings.profile.company}
-                  onChange={(e) => setSettings(prev => ({
-                    ...prev,
-                    profile: { ...prev.profile, company: e.target.value }
-                  }))}
+                  onChange={e =>
+                    setSettings(prev => ({
+                      ...prev,
+                      profile: { ...prev.profile, company: e.target.value },
+                    }))
+                  }
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
-                  label="Job Title"
+                  label='Job Title'
                   value={settings.profile.jobTitle}
-                  onChange={(e) => setSettings(prev => ({
-                    ...prev,
-                    profile: { ...prev.profile, jobTitle: e.target.value }
-                  }))}
+                  onChange={e =>
+                    setSettings(prev => ({
+                      ...prev,
+                      profile: { ...prev.profile, jobTitle: e.target.value },
+                    }))
+                  }
                 />
               </Grid>
             </Grid>
@@ -348,24 +365,29 @@ export default function SettingsPage() {
 
           {/* Preferences Tab */}
           <TabPanel value={tabValue} index={1}>
-            <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
+            <Typography variant='h6' gutterBottom sx={{ fontWeight: 600 }}>
               Application Preferences
             </Typography>
-            
+
             <Grid container spacing={3}>
               <Grid item xs={12} sm={6}>
                 <FormControl fullWidth>
                   <InputLabel>Theme</InputLabel>
                   <Select
                     value={settings.preferences.theme}
-                    onChange={(e) => setSettings(prev => ({
-                      ...prev,
-                      preferences: { ...prev.preferences, theme: e.target.value as 'light' | 'dark' | 'auto' }
-                    }))}
+                    onChange={e =>
+                      setSettings(prev => ({
+                        ...prev,
+                        preferences: {
+                          ...prev.preferences,
+                          theme: e.target.value as 'light' | 'dark' | 'auto',
+                        },
+                      }))
+                    }
                   >
-                    <MenuItem value="light">Light</MenuItem>
-                    <MenuItem value="dark">Dark</MenuItem>
-                    <MenuItem value="auto">Auto</MenuItem>
+                    <MenuItem value='light'>Light</MenuItem>
+                    <MenuItem value='dark'>Dark</MenuItem>
+                    <MenuItem value='auto'>Auto</MenuItem>
                   </Select>
                 </FormControl>
               </Grid>
@@ -374,15 +396,20 @@ export default function SettingsPage() {
                   <InputLabel>Language</InputLabel>
                   <Select
                     value={settings.preferences.language}
-                    onChange={(e) => setSettings(prev => ({
-                      ...prev,
-                      preferences: { ...prev.preferences, language: e.target.value }
-                    }))}
+                    onChange={e =>
+                      setSettings(prev => ({
+                        ...prev,
+                        preferences: {
+                          ...prev.preferences,
+                          language: e.target.value,
+                        },
+                      }))
+                    }
                   >
-                    <MenuItem value="en">English</MenuItem>
-                    <MenuItem value="es">Spanish</MenuItem>
-                    <MenuItem value="fr">French</MenuItem>
-                    <MenuItem value="de">German</MenuItem>
+                    <MenuItem value='en'>English</MenuItem>
+                    <MenuItem value='es'>Spanish</MenuItem>
+                    <MenuItem value='fr'>French</MenuItem>
+                    <MenuItem value='de'>German</MenuItem>
                   </Select>
                 </FormControl>
               </Grid>
@@ -391,16 +418,23 @@ export default function SettingsPage() {
                   <InputLabel>Timezone</InputLabel>
                   <Select
                     value={settings.preferences.timezone}
-                    onChange={(e) => setSettings(prev => ({
-                      ...prev,
-                      preferences: { ...prev.preferences, timezone: e.target.value }
-                    }))}
+                    onChange={e =>
+                      setSettings(prev => ({
+                        ...prev,
+                        preferences: {
+                          ...prev.preferences,
+                          timezone: e.target.value,
+                        },
+                      }))
+                    }
                   >
-                    <MenuItem value="UTC">UTC</MenuItem>
-                    <MenuItem value="America/New_York">Eastern Time</MenuItem>
-                    <MenuItem value="America/Chicago">Central Time</MenuItem>
-                    <MenuItem value="America/Denver">Mountain Time</MenuItem>
-                    <MenuItem value="America/Los_Angeles">Pacific Time</MenuItem>
+                    <MenuItem value='UTC'>UTC</MenuItem>
+                    <MenuItem value='America/New_York'>Eastern Time</MenuItem>
+                    <MenuItem value='America/Chicago'>Central Time</MenuItem>
+                    <MenuItem value='America/Denver'>Mountain Time</MenuItem>
+                    <MenuItem value='America/Los_Angeles'>
+                      Pacific Time
+                    </MenuItem>
                   </Select>
                 </FormControl>
               </Grid>
@@ -409,14 +443,19 @@ export default function SettingsPage() {
                   <InputLabel>Date Format</InputLabel>
                   <Select
                     value={settings.preferences.dateFormat}
-                    onChange={(e) => setSettings(prev => ({
-                      ...prev,
-                      preferences: { ...prev.preferences, dateFormat: e.target.value }
-                    }))}
+                    onChange={e =>
+                      setSettings(prev => ({
+                        ...prev,
+                        preferences: {
+                          ...prev.preferences,
+                          dateFormat: e.target.value,
+                        },
+                      }))
+                    }
                   >
-                    <MenuItem value="MM/DD/YYYY">MM/DD/YYYY</MenuItem>
-                    <MenuItem value="DD/MM/YYYY">DD/MM/YYYY</MenuItem>
-                    <MenuItem value="YYYY-MM-DD">YYYY-MM-DD</MenuItem>
+                    <MenuItem value='MM/DD/YYYY'>MM/DD/YYYY</MenuItem>
+                    <MenuItem value='DD/MM/YYYY'>DD/MM/YYYY</MenuItem>
+                    <MenuItem value='YYYY-MM-DD'>YYYY-MM-DD</MenuItem>
                   </Select>
                 </FormControl>
               </Grid>
@@ -424,26 +463,31 @@ export default function SettingsPage() {
 
             <Divider sx={{ my: 3 }} />
 
-            <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
+            <Typography variant='h6' gutterBottom sx={{ fontWeight: 600 }}>
               Notifications
             </Typography>
-            
+
             <Grid container spacing={2}>
               <Grid item xs={12} sm={6}>
                 <FormControlLabel
                   control={
                     <Switch
                       checked={settings.preferences.notifications.email}
-                      onChange={(e) => setSettings(prev => ({
-                        ...prev,
-                        preferences: {
-                          ...prev.preferences,
-                          notifications: { ...prev.preferences.notifications, email: e.target.checked }
-                        }
-                      }))}
+                      onChange={e =>
+                        setSettings(prev => ({
+                          ...prev,
+                          preferences: {
+                            ...prev.preferences,
+                            notifications: {
+                              ...prev.preferences.notifications,
+                              email: e.target.checked,
+                            },
+                          },
+                        }))
+                      }
                     />
                   }
-                  label="Email Notifications"
+                  label='Email Notifications'
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
@@ -451,16 +495,21 @@ export default function SettingsPage() {
                   control={
                     <Switch
                       checked={settings.preferences.notifications.push}
-                      onChange={(e) => setSettings(prev => ({
-                        ...prev,
-                        preferences: {
-                          ...prev.preferences,
-                          notifications: { ...prev.preferences.notifications, push: e.target.checked }
-                        }
-                      }))}
+                      onChange={e =>
+                        setSettings(prev => ({
+                          ...prev,
+                          preferences: {
+                            ...prev.preferences,
+                            notifications: {
+                              ...prev.preferences.notifications,
+                              push: e.target.checked,
+                            },
+                          },
+                        }))
+                      }
                     />
                   }
-                  label="Push Notifications"
+                  label='Push Notifications'
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
@@ -468,16 +517,21 @@ export default function SettingsPage() {
                   control={
                     <Switch
                       checked={settings.preferences.notifications.processing}
-                      onChange={(e) => setSettings(prev => ({
-                        ...prev,
-                        preferences: {
-                          ...prev.preferences,
-                          notifications: { ...prev.preferences.notifications, processing: e.target.checked }
-                        }
-                      }))}
+                      onChange={e =>
+                        setSettings(prev => ({
+                          ...prev,
+                          preferences: {
+                            ...prev.preferences,
+                            notifications: {
+                              ...prev.preferences.notifications,
+                              processing: e.target.checked,
+                            },
+                          },
+                        }))
+                      }
                     />
                   }
-                  label="Processing Updates"
+                  label='Processing Updates'
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
@@ -485,16 +539,21 @@ export default function SettingsPage() {
                   control={
                     <Switch
                       checked={settings.preferences.notifications.errors}
-                      onChange={(e) => setSettings(prev => ({
-                        ...prev,
-                        preferences: {
-                          ...prev.preferences,
-                          notifications: { ...prev.preferences.notifications, errors: e.target.checked }
-                        }
-                      }))}
+                      onChange={e =>
+                        setSettings(prev => ({
+                          ...prev,
+                          preferences: {
+                            ...prev.preferences,
+                            notifications: {
+                              ...prev.preferences.notifications,
+                              errors: e.target.checked,
+                            },
+                          },
+                        }))
+                      }
                     />
                   }
-                  label="Error Alerts"
+                  label='Error Alerts'
                 />
               </Grid>
             </Grid>
@@ -502,24 +561,32 @@ export default function SettingsPage() {
 
           {/* Processing Tab */}
           <TabPanel value={tabValue} index={2}>
-            <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
+            <Typography variant='h6' gutterBottom sx={{ fontWeight: 600 }}>
               Processing Settings
             </Typography>
-            
+
             <Grid container spacing={3}>
               <Grid item xs={12} sm={6}>
                 <FormControl fullWidth>
                   <InputLabel>Default Output Format</InputLabel>
                   <Select
                     value={settings.processing.defaultFormat}
-                    onChange={(e) => setSettings(prev => ({
-                      ...prev,
-                      processing: { ...prev.processing, defaultFormat: e.target.value as 'docx' | 'pdf' | 'html' }
-                    }))}
+                    onChange={e =>
+                      setSettings(prev => ({
+                        ...prev,
+                        processing: {
+                          ...prev.processing,
+                          defaultFormat: e.target.value as
+                            | 'docx'
+                            | 'pdf'
+                            | 'html',
+                        },
+                      }))
+                    }
                   >
-                    <MenuItem value="docx">DOCX</MenuItem>
-                    <MenuItem value="pdf">PDF</MenuItem>
-                    <MenuItem value="html">HTML</MenuItem>
+                    <MenuItem value='docx'>DOCX</MenuItem>
+                    <MenuItem value='pdf'>PDF</MenuItem>
+                    <MenuItem value='html'>HTML</MenuItem>
                   </Select>
                 </FormControl>
               </Grid>
@@ -528,49 +595,69 @@ export default function SettingsPage() {
                   control={
                     <Switch
                       checked={settings.processing.autoProcess}
-                      onChange={(e) => setSettings(prev => ({
-                        ...prev,
-                        processing: { ...prev.processing, autoProcess: e.target.checked }
-                      }))}
+                      onChange={e =>
+                        setSettings(prev => ({
+                          ...prev,
+                          processing: {
+                            ...prev.processing,
+                            autoProcess: e.target.checked,
+                          },
+                        }))
+                      }
                     />
                   }
-                  label="Auto-process after upload"
+                  label='Auto-process after upload'
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
-                  label="Max File Size (MB)"
-                  type="number"
+                  label='Max File Size (MB)'
+                  type='number'
                   value={settings.processing.maxFileSize}
-                  onChange={(e) => setSettings(prev => ({
-                    ...prev,
-                    processing: { ...prev.processing, maxFileSize: parseInt(e.target.value) || 10 }
-                  }))}
+                  onChange={e =>
+                    setSettings(prev => ({
+                      ...prev,
+                      processing: {
+                        ...prev.processing,
+                        maxFileSize: parseInt(e.target.value) || 10,
+                      },
+                    }))
+                  }
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
-                  label="Concurrent Jobs"
-                  type="number"
+                  label='Concurrent Jobs'
+                  type='number'
                   value={settings.processing.concurrentJobs}
-                  onChange={(e) => setSettings(prev => ({
-                    ...prev,
-                    processing: { ...prev.processing, concurrentJobs: parseInt(e.target.value) || 3 }
-                  }))}
+                  onChange={e =>
+                    setSettings(prev => ({
+                      ...prev,
+                      processing: {
+                        ...prev.processing,
+                        concurrentJobs: parseInt(e.target.value) || 3,
+                      },
+                    }))
+                  }
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
-                  label="Retry Attempts"
-                  type="number"
+                  label='Retry Attempts'
+                  type='number'
                   value={settings.processing.retryAttempts}
-                  onChange={(e) => setSettings(prev => ({
-                    ...prev,
-                    processing: { ...prev.processing, retryAttempts: parseInt(e.target.value) || 3 }
-                  }))}
+                  onChange={e =>
+                    setSettings(prev => ({
+                      ...prev,
+                      processing: {
+                        ...prev.processing,
+                        retryAttempts: parseInt(e.target.value) || 3,
+                      },
+                    }))
+                  }
                 />
               </Grid>
             </Grid>
@@ -578,91 +665,108 @@ export default function SettingsPage() {
 
           {/* Email Tab */}
           <TabPanel value={tabValue} index={3}>
-            <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
+            <Typography variant='h6' gutterBottom sx={{ fontWeight: 600 }}>
               Email Configuration
             </Typography>
-            
+
             <Grid container spacing={3}>
               <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
-                  label="SMTP Host"
+                  label='SMTP Host'
                   value={settings.email.smtpHost}
-                  onChange={(e) => setSettings(prev => ({
-                    ...prev,
-                    email: { ...prev.email, smtpHost: e.target.value }
-                  }))}
+                  onChange={e =>
+                    setSettings(prev => ({
+                      ...prev,
+                      email: { ...prev.email, smtpHost: e.target.value },
+                    }))
+                  }
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
-                  label="SMTP Port"
-                  type="number"
+                  label='SMTP Port'
+                  type='number'
                   value={settings.email.smtpPort}
-                  onChange={(e) => setSettings(prev => ({
-                    ...prev,
-                    email: { ...prev.email, smtpPort: parseInt(e.target.value) || 587 }
-                  }))}
+                  onChange={e =>
+                    setSettings(prev => ({
+                      ...prev,
+                      email: {
+                        ...prev.email,
+                        smtpPort: parseInt(e.target.value) || 587,
+                      },
+                    }))
+                  }
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
-                  label="SMTP Username"
+                  label='SMTP Username'
                   value={settings.email.smtpUser}
-                  onChange={(e) => setSettings(prev => ({
-                    ...prev,
-                    email: { ...prev.email, smtpUser: e.target.value }
-                  }))}
+                  onChange={e =>
+                    setSettings(prev => ({
+                      ...prev,
+                      email: { ...prev.email, smtpUser: e.target.value },
+                    }))
+                  }
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
-                  label="SMTP Password"
-                  type="password"
+                  label='SMTP Password'
+                  type='password'
                   value={settings.email.smtpPassword}
-                  onChange={(e) => setSettings(prev => ({
-                    ...prev,
-                    email: { ...prev.email, smtpPassword: e.target.value }
-                  }))}
+                  onChange={e =>
+                    setSettings(prev => ({
+                      ...prev,
+                      email: { ...prev.email, smtpPassword: e.target.value },
+                    }))
+                  }
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
-                  label="From Email"
-                  type="email"
+                  label='From Email'
+                  type='email'
                   value={settings.email.fromEmail}
-                  onChange={(e) => setSettings(prev => ({
-                    ...prev,
-                    email: { ...prev.email, fromEmail: e.target.value }
-                  }))}
+                  onChange={e =>
+                    setSettings(prev => ({
+                      ...prev,
+                      email: { ...prev.email, fromEmail: e.target.value },
+                    }))
+                  }
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
-                  label="From Name"
+                  label='From Name'
                   value={settings.email.fromName}
-                  onChange={(e) => setSettings(prev => ({
-                    ...prev,
-                    email: { ...prev.email, fromName: e.target.value }
-                  }))}
+                  onChange={e =>
+                    setSettings(prev => ({
+                      ...prev,
+                      email: { ...prev.email, fromName: e.target.value },
+                    }))
+                  }
                 />
               </Grid>
               <Grid item xs={12}>
                 <TextField
                   fullWidth
-                  label="Email Signature"
+                  label='Email Signature'
                   multiline
                   rows={4}
                   value={settings.email.signature}
-                  onChange={(e) => setSettings(prev => ({
-                    ...prev,
-                    email: { ...prev.email, signature: e.target.value }
-                  }))}
+                  onChange={e =>
+                    setSettings(prev => ({
+                      ...prev,
+                      email: { ...prev.email, signature: e.target.value },
+                    }))
+                  }
                 />
               </Grid>
             </Grid>
@@ -670,23 +774,28 @@ export default function SettingsPage() {
 
           {/* Security Tab */}
           <TabPanel value={tabValue} index={4}>
-            <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
+            <Typography variant='h6' gutterBottom sx={{ fontWeight: 600 }}>
               Security Settings
             </Typography>
-            
+
             <Grid container spacing={3}>
               <Grid item xs={12} sm={6}>
                 <FormControlLabel
                   control={
                     <Switch
                       checked={settings.security.twoFactorEnabled}
-                      onChange={(e) => setSettings(prev => ({
-                        ...prev,
-                        security: { ...prev.security, twoFactorEnabled: e.target.checked }
-                      }))}
+                      onChange={e =>
+                        setSettings(prev => ({
+                          ...prev,
+                          security: {
+                            ...prev.security,
+                            twoFactorEnabled: e.target.checked,
+                          },
+                        }))
+                      }
                     />
                   }
-                  label="Two-Factor Authentication"
+                  label='Two-Factor Authentication'
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
@@ -694,55 +803,70 @@ export default function SettingsPage() {
                   control={
                     <Switch
                       checked={settings.security.loginNotifications}
-                      onChange={(e) => setSettings(prev => ({
-                        ...prev,
-                        security: { ...prev.security, loginNotifications: e.target.checked }
-                      }))}
+                      onChange={e =>
+                        setSettings(prev => ({
+                          ...prev,
+                          security: {
+                            ...prev.security,
+                            loginNotifications: e.target.checked,
+                          },
+                        }))
+                      }
                     />
                   }
-                  label="Login Notifications"
+                  label='Login Notifications'
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
-                  label="Session Timeout (minutes)"
-                  type="number"
+                  label='Session Timeout (minutes)'
+                  type='number'
                   value={settings.security.sessionTimeout}
-                  onChange={(e) => setSettings(prev => ({
-                    ...prev,
-                    security: { ...prev.security, sessionTimeout: parseInt(e.target.value) || 30 }
-                  }))}
+                  onChange={e =>
+                    setSettings(prev => ({
+                      ...prev,
+                      security: {
+                        ...prev.security,
+                        sessionTimeout: parseInt(e.target.value) || 30,
+                      },
+                    }))
+                  }
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
-                  label="Password Expiry (days)"
-                  type="number"
+                  label='Password Expiry (days)'
+                  type='number'
                   value={settings.security.passwordExpiry}
-                  onChange={(e) => setSettings(prev => ({
-                    ...prev,
-                    security: { ...prev.security, passwordExpiry: parseInt(e.target.value) || 90 }
-                  }))}
+                  onChange={e =>
+                    setSettings(prev => ({
+                      ...prev,
+                      security: {
+                        ...prev.security,
+                        passwordExpiry: parseInt(e.target.value) || 90,
+                      },
+                    }))
+                  }
                 />
               </Grid>
             </Grid>
 
             <Divider sx={{ my: 3 }} />
 
-            <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
+            <Typography variant='h6' gutterBottom sx={{ fontWeight: 600 }}>
               Account Actions
             </Typography>
-            
+
             <Stack spacing={2}>
-              <Button variant="outlined" color="primary">
+              <Button variant='outlined' color='primary'>
                 Change Password
               </Button>
-              <Button variant="outlined" color="warning">
+              <Button variant='outlined' color='warning'>
                 Export Data
               </Button>
-              <Button variant="outlined" color="error">
+              <Button variant='outlined' color='error'>
                 Delete Account
               </Button>
             </Stack>
@@ -750,16 +874,16 @@ export default function SettingsPage() {
 
           {/* Save Button */}
           <Box sx={{ p: 3, borderTop: 1, borderColor: 'divider' }}>
-            <Stack direction="row" spacing={2} justifyContent="flex-end">
+            <Stack direction='row' spacing={2} justifyContent='flex-end'>
               <Button
-                variant="outlined"
+                variant='outlined'
                 startIcon={<RefreshIcon />}
                 onClick={loadSettings}
               >
                 Reset
               </Button>
               <Button
-                variant="contained"
+                variant='contained'
                 startIcon={<SaveIcon />}
                 onClick={handleSave}
                 disabled={saving}

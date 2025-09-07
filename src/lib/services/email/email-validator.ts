@@ -36,27 +36,3 @@ export function isValidEmail(email: string): boolean {
 export function sanitizeEmail(email: string): string {
     return email.trim().toLowerCase();
 }
-
-// Class interface expected by API route
-export class EmailValidator {
-    validateEmailConfig(emailConfig: any): { valid: boolean; errors: string[] } {
-        const schema = z.object({
-            recipient: z.string().email(),
-            subject: z.string().min(1),
-            body: z.string().min(1),
-            smtpServer: z.string().min(1),
-            smtpPort: z.number().min(1).max(65535),
-            senderEmail: z.string().email(),
-            senderPassword: z.string().min(1),
-            isSecure: z.boolean().optional(),
-        });
-
-        const result = schema.safeParse(emailConfig);
-        if (!result.success) {
-            return { valid: false, errors: result.error.errors.map(e => e.message) };
-        }
-        return { valid: true, errors: [] };
-    }
-}
-
-export default EmailValidator;

@@ -1,14 +1,10 @@
-'use client';
-
 import { z } from 'zod';
 
 export const fileUploadSchema = z.object({
     filename: z.string().min(1, 'Filename is required'),
     mimetype: z.string().min(1, 'MIME type is required'),
     size: z.number().min(1, 'File size must be greater than 0'),
-    buffer: z.custom<Buffer>((v: unknown) => v instanceof Buffer, {
-        message: 'Invalid file buffer',
-    }),
+    buffer: z.instanceof(Buffer, 'Invalid file buffer'),
 });
 
 export const allowedMimeTypes = [
@@ -19,75 +15,47 @@ export const allowedMimeTypes = [
     'text/html', // .html
 ];
 
-export const maxFileSize = 50 * 1024 * 1024; // 50MB
-
-export function validateFile(file: {
-    filename: string;
-    mimetype: string;
-    size: number;
-    buffer: Buffer;
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
 }) {
-    const result = fileUploadSchema.safeParse(file);
-
-    if (!result.success) {
-        return {
-            valid: false,
-            errors: result.error.errors.map(err => err.message),
-        };
-    }
-
-    // Check MIME type
-    if (!allowedMimeTypes.includes(file.mimetype)) {
-        return {
-            valid: false,
-            errors: [`File type ${file.mimetype} is not allowed. Allowed types: ${allowedMimeTypes.join(', ')}`],
-        };
-    }
-
-    // Check file size
-    if (file.size > maxFileSize) {
-        return {
-            valid: false,
-            errors: [`File size ${file.size} bytes exceeds maximum allowed size of ${maxFileSize} bytes`],
-        };
-    }
-
-    // Check filename
-    if (!isValidFilename(file.filename)) {
-        return {
-            valid: false,
-            errors: ['Invalid filename. Only alphanumeric characters, dots, hyphens, and underscores are allowed'],
-        };
-    }
-
-    return {
-        valid: true,
-        errors: [],
-    };
-}
-
-export function isValidFilename(filename: string): boolean {
-    // Allow alphanumeric, dots, hyphens, underscores, and spaces
-    const filenameRegex = /^[a-zA-Z0-9._\-\s]+$/;
-    return filenameRegex.test(filename) && filename.length <= 255;
-}
-
-export function sanitizeFilename(filename: string): string {
-    // Remove or replace invalid characters
-    return filename
-        .replace(/[^a-zA-Z0-9._\-\s]/g, '_')
-        .replace(/\s+/g, '_')
-        .substring(0, 255);
-}
-
-export function getFileExtension(filename: string): string {
-    const lastDot = filename.lastIndexOf('.');
-    return lastDot === -1 ? '' : filename.substring(lastDot + 1).toLowerCase();
-}
-
-export function isDocumentFile(filename: string): boolean {
-    const extension = getFileExtension(filename);
-    return ['docx', 'doc', 'pdf'].includes(extension);
+  return (
+    <html lang="en">
+      <body>
+        <ThemeProvider theme={theme}>
+          <CssBaseline />
+          <AuthProvider>
+          {children}
+          </AuthProvider>
+          <Toaster
+            position="top-right"
+            toastOptions={{
+              duration: 4000,
+              style: {
+                background: '#363636',
+                color: '#fff',
+              },
+              success: {
+                duration: 3000,
+                iconTheme: {
+                  primary: '#4ade80',
+                  secondary: '#fff',
+                },
+              },
+              error: {
+                duration: 5000,
+                iconTheme: {
+                  primary: '#ef4444',
+                  secondary: '#fff',
+                },
+              },
+            }}
+          />
+        </ThemeProvider>
+      </body>
+    </html>
+  );
 }
 
 // Class wrapper expected by API routes (accepts Web File)

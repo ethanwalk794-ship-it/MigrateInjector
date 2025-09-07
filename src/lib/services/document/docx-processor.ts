@@ -1,70 +1,209 @@
-'use client';
-
-import mammoth from 'mammoth';
+import { Document, Paragraph, TextRun } from 'docx';
 import { Buffer } from 'buffer';
 
-export interface ExtractResult {
-    success: boolean;
-    data?: {
-        rawText: string;
-        projects: string[];
-        techStacks: string[];
-        sections: {
-            summary?: string;
-            experience?: string;
-            education?: string;
-            skills?: string;
-            achievements?: string;
-        };
-    };
-    error?: string;
+export interface ProcessingOptions {
+    bulletFormatting?: boolean;
+    projectHighlighting?: boolean;
+    techStackExtraction?: boolean;
+    keywordOptimization?: boolean;
+    customKeywords?: string[];
 }
 
-export class DocumentProcessor {
-    async extractContent(buffer: Buffer): Promise<ExtractResult> {
+export interface ProcessingResult {
+    success: boolean;
+    content?: string;
+    projects?: string[];
+    techStacks?: string[];
+    error?: string;
+    processingTime?: number;
+}
+
+export class DocxProcessor {
+    private static instance: DocxProcessor;
+
+    public static getInstance(): DocxProcessor {
+        if (!DocxProcessor.instance) {
+            DocxProcessor.instance = new DocxProcessor();
+        }
+        return DocxProcessor.instance;
+    }
+
+    async processDocument(
+        buffer: Buffer,
+        options: ProcessingOptions = {}
+    ): Promise<ProcessingResult> {
+        const startTime = Date.now();
+
         try {
-            const { value: rawText = '' } = await mammoth.extractRawText({ buffer });
-            const projects = this.extractProjects(rawText);
-            const techStacks = this.extractTechStacks(rawText);
-            const sections = this.extractSections(rawText);
+            // Load the document
+            const doc = new Document(buffer);
+
+            // Extract text content
+            const content = this.extractText(doc);
+
+            // Extract projects
+            const projects = this.extractProjects(content);
+
+            // Extract tech stacks
+            const techStacks = this.extractTechStacks(content);
+
+            // Process based on options
+            let processedContent = content;
+
+            if (options.bulletFormatting) {
+                processedContent = this.formatBulletPoints(processedContent);
+            }
+
+            if (options.keywordOptimization && options.customKeywords) {
+                processedContent = this.optimizeKeywords(processedContent, options.customKeywords);
+            }
+
+            const processingTime = Date.now() - startTime;
 
             return {
                 success: true,
-                data: { rawText, projects, techStacks, sections },
+                content: processedContent,
+                projects,
+                techStacks,
+                processingTime,
             };
         } catch (error) {
-            return { success: false, error: error instanceof Error ? error.message : 'Failed to parse document' };
+            return {
+                success: false,
+                error: error instanceof Error ? error.message : 'Unknown error occurred',
+                processingTime: Date.now() - startTime,
+            };
         }
     }
 
+    private extractText(doc: Document): string {
+        const paragraphs: string[] = [];
+
+        for (const paragraph of doc.paragraphs) {
+            const text = paragraph.text;
+            if (text.trim()) {
+                paragraphs.push(text);
+            }
+        }
+
+        return paragraphs.join('\n');
+    }
+
     private extractProjects(content: string): string[] {
-        const lines = content.split('\n').map(l => l.trim()).filter(Boolean);
-        const indicators = ['project', 'experience', 'role'];
-        return lines.filter(l => indicators.some(k => l.toLowerCase().includes(k)) && l.length > 10).slice(0, 50);
+        const projects: string[] = [];
+        const lines = content.split('\n');
+
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i].trim();
+
+            // Look for project patterns
+            if (this.isProjectLine(line)) {
+                projects.push(line);
+            }
+        }
+
+        return projects;
     }
 
     private extractTechStacks(content: string): string[] {
+        const techStacks: string[] = [];
+        const lines = content.split('\n');
+
+        // Common tech stack keywords
         const techKeywords = [
-            'javascript', 'typescript', 'react', 'next', 'node', 'python', 'java', 'c#', 'c++', 'go', 'php', 'ruby',
-            'mongodb', 'postgresql', 'mysql', 'redis', 'elasticsearch', 'aws', 'azure', 'gcp', 'docker', 'kubernetes',
-            'html', 'css', 'sass', 'less', 'webpack', 'babel', 'express', 'django', 'flask', 'spring', 'laravel', 'graphql'
+            'JavaScript', 'TypeScript', 'React', 'Vue', 'Angular', 'Node.js',
+            'Python', 'Java', 'C#', 'C++', 'Go', 'Rust', 'PHP', 'Ruby',
+            'MongoDB', 'PostgreSQL', 'MySQL', 'Redis', 'Elasticsearch',
+            'AWS', 'Azure', 'GCP', 'Docker', 'Kubernetes', 'Git',
+            'HTML', 'CSS', 'SASS', 'LESS', 'Webpack', 'Babel',
+            'Express', 'Django', 'Flask', 'Spring', 'Laravel',
+            'GraphQL', 'REST', 'API', 'Microservices', 'CI/CD'
         ];
-        const found = new Set<string>();
-        const lower = content.toLowerCase();
-        techKeywords.forEach(k => { if (lower.includes(k)) found.add(k.charAt(0).toUpperCase() + k.slice(1)); });
-        return Array.from(found).slice(0, 100);
+
+        for (const line of lines) {
+            for (const keyword of techKeywords) {
+                if (line.toLowerCase().includes(keyword.toLowerCase())) {
+                    if (!techStacks.includes(keyword)) {
+                        techStacks.push(keyword);
+                    }
+                }
+            }
+        }
+
+        return techStacks;
     }
 
-    private extractSections(content: string) {
-        const lower = content.toLowerCase();
-        return {
-            summary: lower.includes('summary') ? 'Detected summary section' : '',
-            experience: lower.includes('experience') ? 'Detected experience section' : '',
-            education: lower.includes('education') ? 'Detected education section' : '',
-            skills: lower.includes('skills') ? 'Detected skills section' : '',
-            achievements: lower.includes('achievements') ? 'Detected achievements section' : '',
-        };
+    private isProjectLine(line: string): boolean {
+        // Simple heuristics to identify project lines
+        const projectIndicators = [
+            'project', 'role', 'position', 'experience', 'work',
+            'developer', 'engineer', 'manager', 'lead', 'senior',
+            'junior', 'architect', 'consultant', 'specialist'
+        ];
+
+        const lowerLine = line.toLowerCase();
+        return projectIndicators.some(indicator => lowerLine.includes(indicator)) &&
+            line.length > 10 && line.length < 200;
+    }
+
+    private formatBulletPoints(content: string): string {
+        const lines = content.split('\n');
+        const formattedLines = lines.map(line => {
+            // Convert various bullet formats to consistent format
+            if (line.match(/^[\s]*[-•*]\s/)) {
+                return line.replace(/^[\s]*[-•*]\s/, '• ');
+            }
+            return line;
+        });
+
+        return formattedLines.join('\n');
+    }
+
+    private optimizeKeywords(content: string, keywords: string[]): string {
+        let optimizedContent = content;
+
+        for (const keyword of keywords) {
+            // Add keyword emphasis or formatting
+            const regex = new RegExp(`\\b${keyword}\\b`, 'gi');
+            optimizedContent = optimizedContent.replace(regex, `**${keyword}**`);
+        }
+
+        return optimizedContent;
+    }
+
+    async createDocument(content: string, title: string): Promise<Buffer> {
+        try {
+            const doc = new Document({
+                sections: [{
+                    properties: {},
+                    children: [
+                        {
+                            type: 'paragraph',
+                            children: [
+                                {
+                                    type: 'textRun',
+                                    text: title,
+                                    bold: true,
+                                    size: 24,
+                                } as TextRun,
+                            ],
+                        } as Paragraph,
+                        {
+                            type: 'paragraph',
+                            children: [
+                                {
+                                    type: 'textRun',
+                                    text: content,
+                                } as TextRun,
+                            ],
+                        } as Paragraph,
+                    ],
+                }],
+            });
+
+            return Buffer.from(await doc.getBuffer());
+        } catch (error) {
+            throw new Error(`Failed to create document: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
     }
 }
-
-export default DocumentProcessor;

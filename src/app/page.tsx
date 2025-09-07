@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { AuthProvider } from '@/lib/hooks/use-auth';
 import { useRouter } from 'next/navigation';
 import { 
   Box, 
@@ -26,7 +27,6 @@ import {
   CheckCircle as CheckIcon
 } from '@mui/icons-material';
 import { motion } from 'framer-motion';
-import { useAuth } from '@/lib/hooks/use-auth';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 const features = [
@@ -63,25 +63,20 @@ const stats = [
   { label: 'Active Users', value: '500+', icon: <AnalyticsIcon /> }
 ];
 
-export default function HomePage() {
+function HomePage() {
   const router = useRouter();
-  const { user, loading } = useAuth();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  if (!mounted || loading) {
+  if (!mounted) {
     return <LoadingSpinner />;
   }
 
   const handleGetStarted = () => {
-    if (user) {
-      router.push('/dashboard');
-    } else {
-      router.push('/auth/login');
-    }
+    router.push('/login');
   };
 
   return (

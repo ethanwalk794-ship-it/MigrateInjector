@@ -19,45 +19,53 @@ interface ResumeProcessingJobData {
     };
 }
 
-export class ResumeProcessor {
-    private worker: Worker;
-    private docxProcessor: DocxProcessor;
+export async function processResumeJob(job: Job<ResumeProcessingJobData>): Promise<any> {
+    const { resumeId, userId, filePath, fileName, options } = job.data;
 
-    constructor() {
-        this.docxProcessor = DocxProcessor.getInstance();
-        this.initializeWorker();
+    try {
+        logger.info(`Starting resume processing for resume ${resumeId}`);
+
+        // Update job progress
+        await job.updateProgress(10);
+
+        // Read file
+        const fs = await import('fs/promises');
+        const fileBuffer = await fs.readFile(filePath);
+
+        await job.updateProgress(30);
+
+        // Process document
+        const docxProcessor = DocxProcessor.getInstance();
+        const result = await docxProcessor.processDocument(fileBuffer, options);
+
+        if (!result.success) {
+            throw new Error(result.error || 'Document processing failed');
+        }
+
+        await job.updateProgress(70);
+
+        // Save processed content
+        const processedFilePath = filePath.replace('.docx', '_processed.docx');
+        await fs.writeFile(processedFilePath, fileBuffer);
+
+        await job.updateProgress(100);
+
+        logger.info(`Resume processing completed for resume ${resumeId}`);
+
+        return {
+            success: true,
+            resumeId,
+            processedFilePath,
+            projects: result.projects,
+            techStacks: result.techStacks,
+            processingTime: result.processingTime,
+        };
+
+    } catch (error) {
+        logger.error(`Resume processing failed for resume ${resumeId}:`, error);
+        throw error;
     }
-
-    private initializeWorker() {
-        this.worker = new Worker(
-            'resume-processing',
-            async (job: Job<ResumeProcessingJobData>) => {
-                return await this.processResume(job);
-            },
-            {
-                connection: getRedisConnection(),
-                concurrency: 5,
-                removeOnComplete: 100,
-                removeOnFail: 50,
-            }
-        );
-
-        this.worker.on('completed', (job) => {
-            logger.info(`Resume processing job ${job.id} completed successfully`);
-        });
-
-        this.worker.on('failed', (job, err) => {
-            logger.error(`Resume processing job ${job?.id} failed:`, err);
-        });
-
-        this.worker.on('error', (err) => {
-            logger.error('Resume processor worker error:', err);
-        });
-
-        logger.info('Resume processor worker initialized');
-    }
-
-    private async processResume(job: Job<ResumeProcessingJobData>): Promise<any> {
+}
         const { resumeId, userId, filePath, fileName, options } = job.data;
 
         try {

@@ -17,7 +17,43 @@ export const allowedMimeTypes = [
 
 export const maxFileSize = 50 * 1024 * 1024; // 50MB
 
-export function validateFile(file: {
+export class FileValidator {
+    async validateFile(file: {
+        name: string;
+        type: string;
+        size: number;
+    }): Promise<{
+        valid: boolean;
+        errors: string[];
+    }> {
+        const errors: string[] = [];
+        
+        // Check file name
+        if (!file.name) {
+            errors.push('Filename is required');
+        }
+        
+        // Check MIME type
+        if (!allowedMimeTypes.includes(file.type)) {
+            errors.push(`File type ${file.type} is not allowed. Allowed types: ${allowedMimeTypes.join(', ')}`);
+        }
+        
+        // Check file size
+        if (file.size > maxFileSize) {
+            errors.push(`File size ${file.size} bytes exceeds maximum allowed size of ${maxFileSize} bytes`);
+        }
+        
+        // Check filename validity
+        if (!isValidFilename(file.name)) {
+            errors.push('Invalid filename. Only alphanumeric characters, dots, hyphens, and underscores are allowed');
+        }
+        
+        return {
+            valid: errors.length === 0,
+            errors
+        };
+    }
+}
     filename: string;
     mimetype: string;
     size: number;

@@ -13,7 +13,7 @@ import {
   Box,
 } from '@mui/material';
 import { Email as EmailIcon, Lock as LockIcon } from '@mui/icons-material';
-import { useAuth } from '@/lib/hooks/use-auth';
+import { useAuth } from '../../../lib/hooks/use-auth';
 import { useRouter } from 'next/navigation';
 
 export default function SignupPage() {
@@ -119,6 +119,7 @@ export default function SignupPage() {
                   required
                   fullWidth
                   InputProps={{ startAdornment: <LockIcon /> }}
+                  helperText='Password must be at least 8 characters'
                 />
                 <Button
                   type='submit'

@@ -1,257 +1,436 @@
-'use client';
-
 import { NextRequest, NextResponse } from 'next/server';
-import connectDB from '@/lib/db/connection';
-import Resume from '@/lib/db/models/resume';
-import Job from '@/lib/db/models/job';
-import { getCurrentUser } from '@/lib/middleware/auth';
-import { addJobToQueue } from '@/lib/queue/queues';
-import { EmailValidator } from '@/lib/services/email/email-validator';
-import { z } from 'zod';
-import { Types } from 'mongoose';
+import nodemailer from 'nodemailer';
+import { promises as fs } from 'node:fs';
+import path from 'node:path';
 
-const SendEmailSchema = z.object({
-  resumeId: z.string().min(1, 'Resume ID is required'),
-  emailConfig: z.object({
-    recipient: z.string().email('Invalid recipient email'),
-    subject: z.string().min(1, 'Subject is required'),
-    body: z.string().min(1, 'Body is required'),
-    smtpServer: z.string().min(1, 'SMTP server is required'),
-    smtpPort: z.number().min(1).max(65535, 'Invalid SMTP port'),
-    senderEmail: z.string().email('Invalid sender email'),
-    senderPassword: z.string().min(1, 'Sender password is required'),
-    isSecure: z.boolean().optional()
-  })
-});
+export const runtime = 'nodejs';
 
-// Helper function to safely call Mongoose methods
-const safeFindOne = async (model: any, query: any) => {
-  return model.findOne(query).exec();
-};
+interface EmailConfig {
+  senderEmail: string;
+  senderPassword: string;
+  recipientEmail: string;
+  smtpHost: string;
+  smtpPort: number;
+  subject: string;
+  message: string;
+}
 
-const safeFind = async (model: any, query: any, options: any = {}) => {
-  let queryBuilder = model.find(query);
+interface EmailRequest {
+  config: EmailConfig;
+  attachments?: string[]; // Array of filenames in the processed directory
+  templateType?: 'default' | 'professional' | 'modern';
+  customVariables?: Record<string, string>;
+}
 
-  if (options.select) {
-    queryBuilder = queryBuilder.select(options.select);
-  }
-  if (options.sort) {
-    queryBuilder = queryBuilder.sort(options.sort);
-  }
-  if (options.limit) {
-    queryBuilder = queryBuilder.limit(options.limit);
-  }
+// Email templates
+const getEmailTemplate = (
+  type: string = 'default',
+  config: EmailConfig,
+  variables: Record<string, string> = {}
+): { html: string; text: string } => {
+  const templates = {
+    default: {
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
+            <h1 style="margin: 0; font-size: 28px;">Resume Customizer Pro</h1>
+            <p style="margin: 10px 0 0 0; opacity: 0.9;">Your customized resume is ready!</p>
+          </div>
+          
+          <div style="background: white; border: 1px solid #e0e0e0; border-top: none; border-radius: 0 0 10px 10px; padding: 30px;">
+            <h2 style="color: #333; margin-top: 0;">Hello there! 👋</h2>
+            
+            <p style="color: #666; line-height: 1.6; font-size: 16px;">
+              ${config.message || 'Your resume has been successfully processed and customized with your technical skills.'}
+            </p>
+            
+            <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+              <h3 style="color: #495057; margin-top: 0;">What we've done:</h3>
+              <ul style="color: #666; line-height: 1.8;">
+                <li>🔍 Analyzed your resume structure and projects</li>
+                <li>⚡ Integrated your tech stack into relevant sections</li>
+                <li>📊 Optimized content for better impact</li>
+                <li>📎 Prepared your enhanced resume for download</li>
+              </ul>
+            </div>
+            
+            <p style="color: #666; line-height: 1.6;">
+              Please find your customized resume(s) attached to this email. The files have been enhanced with your technical accomplishments and are ready for your job applications.
+            </p>
+            
+            <div style="text-align: center; margin: 30px 0;">
+              <p style="color: #28a745; font-weight: bold; font-size: 18px;">✅ Processing Complete!</p>
+            </div>
+            
+            <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 30px 0;">
+            
+            <div style="background: #e3f2fd; padding: 15px; border-radius: 6px; border-left: 4px solid #2196f3;">
+              <p style="margin: 0; color: #1565c0; font-size: 14px;">
+                <strong>💡 Pro Tip:</strong> Review the processed resume to ensure it aligns with your target role. 
+                You can always reprocess with different tech stacks for various job applications!
+              </p>
+            </div>
+          </div>
+          
+          <div style="text-align: center; margin-top: 20px; color: #999; font-size: 12px;">
+            <p>Generated by Resume Customizer Pro | ${new Date().toLocaleDateString()}</p>
+          </div>
+        </div>
+      `,
+      text: `
+Resume Customizer Pro - Your customized resume is ready!
 
-  return queryBuilder.exec();
+Hello there!
+
+${config.message || 'Your resume has been successfully processed and customized with your technical skills.'}
+
+What we've done:
+• Analyzed your resume structure and projects
+• Integrated your tech stack into relevant sections  
+• Optimized content for better impact
+• Prepared your enhanced resume for download
+
+Please find your customized resume(s) attached to this email. The files have been enhanced with your technical accomplishments and are ready for your job applications.
+
+✅ Processing Complete!
+
+Pro Tip: Review the processed resume to ensure it aligns with your target role. You can always reprocess with different tech stacks for various job applications!
+
+Generated by Resume Customizer Pro | ${new Date().toLocaleDateString()}
+      `
+    },
+    
+    professional: {
+      html: `
+        <div style="font-family: 'Georgia', serif; max-width: 650px; margin: 0 auto; background: #fafafa; padding: 40px 0;">
+          <div style="background: white; margin: 0 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+            <div style="background: #2c3e50; color: white; padding: 40px; text-align: center;">
+              <h1 style="margin: 0; font-size: 32px; font-weight: normal; letter-spacing: 2px;">RESUME</h1>
+              <h2 style="margin: 10px 0 0 0; font-size: 18px; font-weight: normal; opacity: 0.9; letter-spacing: 1px;">CUSTOMIZATION COMPLETE</h2>
+            </div>
+            
+            <div style="padding: 40px;">
+              <p style="font-size: 18px; color: #2c3e50; margin-bottom: 30px; line-height: 1.6;">
+                Dear Professional,
+              </p>
+              
+              <p style="color: #34495e; line-height: 1.8; font-size: 16px; margin-bottom: 25px;">
+                ${config.message || 'Your resume customization has been completed with the highest attention to detail and professional standards.'}
+              </p>
+              
+              <div style="border-left: 4px solid #3498db; padding-left: 25px; margin: 30px 0;">
+                <h3 style="color: #2c3e50; margin-top: 0; font-size: 20px;">Enhancements Applied:</h3>
+                <ul style="color: #34495e; line-height: 2; font-size: 15px;">
+                  <li>Strategic integration of technical competencies</li>
+                  <li>Enhanced project descriptions with quantifiable achievements</li>
+                  <li>Optimized keyword placement for ATS compatibility</li>
+                  <li>Professional formatting and structure refinement</li>
+                </ul>
+              </div>
+              
+              <p style="color: #34495e; line-height: 1.8; font-size: 16px; margin-bottom: 30px;">
+                Your enhanced resume is now ready for distribution to prospective employers. 
+                The attached document represents a comprehensive integration of your technical expertise 
+                with your professional experience.
+              </p>
+              
+              <div style="text-align: center; background: #ecf0f1; padding: 25px; border-radius: 4px;">
+                <p style="color: #27ae60; font-size: 20px; margin: 0; font-weight: bold;">
+                  ✓ CUSTOMIZATION SUCCESSFUL
+                </p>
+              </div>
+            </div>
+            
+            <div style="background: #34495e; color: white; padding: 25px; text-align: center; font-size: 12px;">
+              <p style="margin: 0; opacity: 0.8;">Resume Customizer Pro | ${new Date().toLocaleDateString()}</p>
+            </div>
+          </div>
+        </div>
+      `,
+      text: `
+RESUME CUSTOMIZATION COMPLETE
+
+Dear Professional,
+
+${config.message || 'Your resume customization has been completed with the highest attention to detail and professional standards.'}
+
+Enhancements Applied:
+• Strategic integration of technical competencies
+• Enhanced project descriptions with quantifiable achievements  
+• Optimized keyword placement for ATS compatibility
+• Professional formatting and structure refinement
+
+Your enhanced resume is now ready for distribution to prospective employers. The attached document represents a comprehensive integration of your technical expertise with your professional experience.
+
+✓ CUSTOMIZATION SUCCESSFUL
+
+Resume Customizer Pro | ${new Date().toLocaleDateString()}
+      `
+    },
+    
+    modern: {
+      html: `
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto;">
+          <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 0; border-radius: 12px; overflow: hidden; margin: 20px;">
+            <div style="padding: 40px; text-align: center; color: white;">
+              <div style="width: 60px; height: 60px; background: rgba(255,255,255,0.2); border-radius: 50%; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; font-size: 24px;">
+                🚀
+              </div>
+              <h1 style="margin: 0; font-size: 28px; font-weight: 600;">Resume Enhanced!</h1>
+              <p style="margin: 15px 0 0 0; opacity: 0.9; font-size: 16px;">Your tech-optimized resume is ready to launch your career</p>
+            </div>
+            
+            <div style="background: white; padding: 40px;">
+              <div style="display: flex; align-items: center; margin-bottom: 30px;">
+                <div style="width: 8px; height: 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 4px; margin-right: 20px;"></div>
+                <h2 style="margin: 0; color: #2d3748; font-size: 24px; font-weight: 600;">Mission Accomplished! ✨</h2>
+              </div>
+              
+              <p style="color: #4a5568; line-height: 1.7; font-size: 16px; margin-bottom: 30px;">
+                ${config.message || "We've supercharged your resume with cutting-edge tech integration and modern optimization techniques."}
+              </p>
+              
+              <div style="background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%); padding: 30px; border-radius: 12px; margin: 30px 0;">
+                <h3 style="color: #2d3748; margin-top: 0; font-size: 18px; display: flex; align-items: center;">
+                  <span style="margin-right: 10px;">⚡</span> What's New in Your Resume:
+                </h3>
+                <div style="display: grid; gap: 15px;">
+                  <div style="display: flex; align-items: center;">
+                    <span style="color: #48bb78; margin-right: 12px; font-size: 18px;">✅</span>
+                    <span style="color: #4a5568;">Smart tech stack distribution across relevant projects</span>
+                  </div>
+                  <div style="display: flex; align-items: center;">
+                    <span style="color: #48bb78; margin-right: 12px; font-size: 18px;">✅</span>
+                    <span style="color: #4a5568;">AI-optimized keyword placement for maximum impact</span>
+                  </div>
+                  <div style="display: flex; align-items: center;">
+                    <span style="color: #48bb78; margin-right: 12px; font-size: 18px;">✅</span>
+                    <span style="color: #4a5568;">Modern formatting with ATS-friendly structure</span>
+                  </div>
+                  <div style="display: flex; align-items: center;">
+                    <span style="color: #48bb78; margin-right: 12px; font-size: 18px;">✅</span>
+                    <span style="color: #4a5568;">Enhanced accomplishment descriptions</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 25px; border-radius: 12px; text-align: center; margin: 30px 0;">
+                <p style="margin: 0; font-size: 18px; font-weight: 600;">🎯 Ready to Apply!</p>
+                <p style="margin: 10px 0 0 0; opacity: 0.9; font-size: 14px;">Your resume is now optimized for modern hiring practices</p>
+              </div>
+              
+              <div style="border-top: 1px solid #e2e8f0; padding-top: 20px; margin-top: 30px;">
+                <p style="color: #718096; font-size: 14px; line-height: 1.6; margin: 0;">
+                  💡 <strong>Pro tip:</strong> Customize different versions of your resume for different roles. 
+                  Each tech stack combination can highlight different aspects of your experience!
+                </p>
+              </div>
+            </div>
+            
+            <div style="background: #f7fafc; padding: 20px; text-align: center;">
+              <p style="margin: 0; color: #718096; font-size: 12px;">
+                Crafted with ❤️ by Resume Customizer Pro | ${new Date().toLocaleDateString()}
+              </p>
+            </div>
+          </div>
+        </div>
+      `,
+      text: `
+🚀 RESUME ENHANCED!
+
+Your tech-optimized resume is ready to launch your career
+
+Mission Accomplished! ✨
+
+${config.message || "We've supercharged your resume with cutting-edge tech integration and modern optimization techniques."}
+
+⚡ What's New in Your Resume:
+✅ Smart tech stack distribution across relevant projects
+✅ AI-optimized keyword placement for maximum impact  
+✅ Modern formatting with ATS-friendly structure
+✅ Enhanced accomplishment descriptions
+
+🎯 Ready to Apply!
+Your resume is now optimized for modern hiring practices
+
+💡 Pro tip: Customize different versions of your resume for different roles. Each tech stack combination can highlight different aspects of your experience!
+
+Crafted with ❤️ by Resume Customizer Pro | ${new Date().toLocaleDateString()}
+      `
+    }
+  };
+
+  return templates[type as keyof typeof templates] || templates.default;
 };
 
 export async function POST(request: NextRequest) {
   try {
-    // Check authentication
-    const user = await getCurrentUser(request);
-    if (!user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-
-    // Connect to database
-    await connectDB();
-
-    // Parse and validate request body
-    const body = await request.json();
-    const validationResult = SendEmailSchema.safeParse(body);
-
-    if (!validationResult.success) {
-      return NextResponse.json(
-        {
-          error: 'Validation failed',
-          details: validationResult.error.errors
-        },
-        { status: 400 }
-      );
-    }
-
-    const { resumeId, emailConfig } = validationResult.data;
-
-    // Find resume using safe helper
-    const resume = await safeFindOne(Resume, {
-      _id: resumeId,
-      userId: user._id
-    });
-
-    if (!resume) {
-      return NextResponse.json(
-        { error: 'Resume not found' },
-        { status: 404 }
-      );
-    }
-
-    // Check if resume is ready for email
-    if (resume.status !== 'ready') {
-      return NextResponse.json(
-        { error: 'Resume is not ready for email sending' },
-        { status: 409 }
-      );
-    }
+    const body: EmailRequest = await request.json();
+    const { config, attachments = [], templateType = 'default', customVariables = {} } = body;
 
     // Validate email configuration
-    const emailValidator = new EmailValidator();
-    const emailValidation = emailValidator.validateEmailConfig(emailConfig);
-
-    if (!emailValidation.valid) {
+    if (!config.senderEmail || !config.senderPassword || !config.recipientEmail) {
       return NextResponse.json(
-        {
-          error: 'Email configuration invalid',
-          details: emailValidation.errors
-        },
+        { error: 'Missing required email configuration fields' },
         { status: 400 }
       );
     }
 
-    // Update resume with email config
-    resume.emailConfig = emailConfig;
-    await resume.save();
+    // Create transporter
+    const transporter = nodemailer.createTransport({
+      host: config.smtpHost,
+      port: config.smtpPort,
+      secure: config.smtpPort === 465, // true for 465, false for other ports
+      auth: {
+        user: config.senderEmail,
+        pass: config.senderPassword,
+      },
+      tls: {
+        rejectUnauthorized: false, // Allow self-signed certificates
+      },
+    });
 
-    // Create email sending job
-    const job = new Job({
-      userId: user._id,
-      type: 'email_sending',
-      status: 'pending',
-      priority: 'normal',
-      data: {
-        resumeId,
-        emailConfig
-      },
-      progress: {
-        current: 0,
-        total: 100,
-        percentage: 0,
-        currentStep: 'Queued for email sending',
-        steps: [
-          { name: 'Initialize email sending', status: 'pending' },
-          { name: 'Validate email configuration', status: 'pending' },
-          { name: 'Prepare resume attachment', status: 'pending' },
-          { name: 'Send email', status: 'pending' },
-          { name: 'Verify delivery', status: 'pending' }
-        ]
-      },
-      retry: {
-        attempts: 0,
-        maxAttempts: 3,
-        backoffDelay: 2000
+    // Verify transporter configuration
+    try {
+      await transporter.verify();
+    } catch (error) {
+      console.error('SMTP configuration error:', error);
+      return NextResponse.json(
+        { error: 'SMTP configuration is invalid. Please check your email settings.' },
+        { status: 400 }
+      );
+    }
+
+    // Prepare attachments
+    const emailAttachments = [];
+    const processedDir = path.join(process.cwd(), 'processed');
+
+    for (const filename of attachments) {
+      try {
+        const filePath = path.join(processedDir, filename);
+        await fs.access(filePath); // Check if file exists
+
+        const fileBuffer = await fs.readFile(filePath);
+        emailAttachments.push({
+          filename: filename.replace('processed_', ''),
+          content: fileBuffer,
+          contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        });
+      } catch (error) {
+        console.warn(`Attachment file not found: ${filename}`);
       }
-    });
+    }
 
-    await job.save();
+    // Get email template
+    const template = getEmailTemplate(templateType, config, customVariables);
 
-    // Add job to email queue
-    await addJobToQueue('email-sending', {
-      jobId: job._id,
-      resumeId,
-      userId: user._id,
-      emailConfig
-    });
+    // Prepare email options
+    const mailOptions = {
+      from: {
+        name: 'Resume Customizer Pro',
+        address: config.senderEmail,
+      },
+      to: config.recipientEmail,
+      subject: config.subject || 'Your Customized Resume is Ready! 🚀',
+      text: template.text,
+      html: template.html,
+      attachments: emailAttachments,
+      headers: {
+        'X-Mailer': 'Resume Customizer Pro',
+        'X-Priority': '1',
+      },
+    };
+
+    // Send email
+    const info = await transporter.sendMail(mailOptions);
 
     return NextResponse.json({
       success: true,
+      message: 'Email sent successfully',
       data: {
-        jobId: job._id,
-        resumeId: resume._id,
-        status: 'processing',
-        message: 'Email sending started'
-      }
+        messageId: info.messageId,
+        accepted: info.accepted,
+        rejected: info.rejected,
+        attachmentCount: emailAttachments.length,
+        templateUsed: templateType,
+      },
     });
 
   } catch (error) {
     console.error('Email sending error:', error);
+    
+    // Provide more specific error messages
+    if (error instanceof Error) {
+      if (error.message.includes('authentication')) {
+        return NextResponse.json(
+          { error: 'Email authentication failed. Please check your credentials.' },
+          { status: 401 }
+        );
+      }
+      if (error.message.includes('connection')) {
+        return NextResponse.json(
+          { error: 'Failed to connect to email server. Please check your SMTP settings.' },
+          { status: 502 }
+        );
+      }
+    }
 
     return NextResponse.json(
-      {
-        error: 'Email sending failed',
-        message: error instanceof Error ? error.message : 'Unknown error'
-      },
+      { error: 'Failed to send email. Please try again.' },
       { status: 500 }
     );
   }
 }
 
+// Test email configuration endpoint
 export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url);
+  const host = searchParams.get('host') || 'smtp.gmail.com';
+  const port = parseInt(searchParams.get('port') || '587');
+
   try {
-    // Check authentication
-    const user = await getCurrentUser(request);
-    if (!user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-
-    // Connect to database
-    await connectDB();
-
-    // Get query parameters
-    const { searchParams } = new URL(request.url);
-    const jobId = searchParams.get('jobId');
-
-    if (jobId) {
-      // Get email sending status for specific job using safe helper
-      const job = await safeFindOne(Job, {
-        _id: jobId,
-        userId: user._id,
-        type: 'email_sending'
-      });
-
-      if (!job) {
-        return NextResponse.json(
-          { error: 'Job not found' },
-          { status: 404 }
-        );
-      }
-
-      return NextResponse.json({
-        success: true,
-        data: {
-          jobId: job._id,
-          type: job.type,
-          status: job.status,
-          progress: job.progress,
-          result: job.result,
-          error: job.error,
-          createdAt: job.createdAt,
-          startedAt: job.startedAt,
-          completedAt: job.completedAt
-        }
-      });
-    }
-
-    // Get all email sending jobs for user using safe helper
-    const jobs = await safeFind(Job, {
-      userId: user._id,
-      type: 'email_sending'
-    }, {
-      select: '-data',
-      sort: { createdAt: -1 },
-      limit: 20
+    const transporter = nodemailer.createTransport({
+      host,
+      port,
+      secure: port === 465,
+      auth: {
+        user: 'test@example.com', // Dummy credentials for connection test
+        pass: 'test',
+      },
     });
+
+    // This will fail auth but confirm connectivity
+    try {
+      await transporter.verify();
+    } catch (error: any) {
+      // If it's just an auth error, connection is fine
+      if (error.code === 'EAUTH' || error.responseCode === 535) {
+        return NextResponse.json({
+          success: true,
+          message: 'SMTP server is reachable',
+          host,
+          port,
+        });
+      }
+      throw error;
+    }
 
     return NextResponse.json({
       success: true,
-      data: {
-        jobs
-      }
+      message: 'SMTP configuration is valid',
+      host,
+      port,
     });
 
   } catch (error) {
-    console.error('Get email status error:', error);
-
     return NextResponse.json(
       {
-        error: 'Failed to get email status',
-        message: error instanceof Error ? error.message : 'Unknown error'
+        error: 'Failed to connect to SMTP server',
+        host,
+        port,
+        details: error instanceof Error ? error.message : 'Unknown error',
       },
-      { status: 500 }
+      { status: 400 }
     );
   }
 }

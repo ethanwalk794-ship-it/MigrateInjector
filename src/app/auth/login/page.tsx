@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Container,
   Card,
@@ -20,16 +20,20 @@ import {
   Email as EmailIcon,
   Lock as LockIcon,
 } from '@mui/icons-material';
-import { useAuth } from '@/lib/hooks/use-auth';
-import { useRouter } from 'next/navigation';
+import { useAuth } from '../../../lib/hooks/use-auth';
+import { useRouter, useSearchParams } from 'next/navigation';
+import ProtectedRoute from '@/components/auth/ProtectedRoute';
 
 export default function LoginPage() {
-  const { login } = useAuth();
+  const { login, user } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [form, setForm] = useState({ email: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  
+  // The ProtectedRoute component will handle redirect for authenticated users
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -40,8 +44,12 @@ export default function LoginPage() {
     setLoading(true);
     setError('');
     try {
-      await login(form.email, form.password);
-      router.push('/resume-upload');
+      const success = await login(form.email, form.password);
+      if (success) {
+        // Redirect to the original page or resume upload
+        const redirectTo = searchParams.get('redirect') || '/resume-upload';
+        router.push(redirectTo);
+      }
     } catch (err: any) {
       setError(err.message || 'Login failed');
     } finally {
@@ -50,109 +58,111 @@ export default function LoginPage() {
   };
 
   return (
-    <Box
-      sx={{
-        minHeight: '100vh',
-        background: 'linear-gradient(135deg, #e0e7ff 0%, #f8fafc 100%)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}
-    >
-      <Container maxWidth='xs'>
-        <Card
-          sx={{
-            p: 3,
-            borderRadius: 4,
-            boxShadow: 6,
-            background: '#fff',
-          }}
-        >
-          <CardContent>
-            <Typography
-              variant='h5'
-              align='center'
-              fontWeight={700}
-              gutterBottom
-            >
-              Login
-            </Typography>
-            <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
-              <Button
-                variant='outlined'
-                color='primary'
-                href='/auth/signup'
-                sx={{ fontWeight: 600, borderRadius: 2 }}
+    <ProtectedRoute requireAuth={false}>
+      <Box
+        sx={{
+          minHeight: '100vh',
+          background: 'linear-gradient(135deg, #e0e7ff 0%, #f8fafc 100%)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <Container maxWidth='xs'>
+          <Card
+            sx={{
+              p: 3,
+              borderRadius: 4,
+              boxShadow: 6,
+              background: '#fff',
+            }}
+          >
+            <CardContent>
+              <Typography
+                variant='h5'
+                align='center'
+                fontWeight={700}
+                gutterBottom
               >
-                New user? Sign Up
-              </Button>
-            </Box>
-            <form onSubmit={handleSubmit}>
-              <Stack spacing={3}>
-                {error && <Alert severity='error'>{error}</Alert>}
-                <TextField
-                  label='Email'
-                  name='email'
-                  type='email'
-                  value={form.email}
-                  onChange={handleChange}
-                  required
-                  fullWidth
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position='start'>
-                        <EmailIcon />
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-                <TextField
-                  label='Password'
-                  name='password'
-                  type={showPassword ? 'text' : 'password'}
-                  value={form.password}
-                  onChange={handleChange}
-                  required
-                  fullWidth
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position='start'>
-                        <LockIcon />
-                      </InputAdornment>
-                    ),
-                    endAdornment: (
-                      <InputAdornment position='end'>
-                        <IconButton
-                          aria-label='toggle password visibility'
-                          onClick={() => setShowPassword(show => !show)}
-                          edge='end'
-                        >
-                          {showPassword ? (
-                            <VisibilityOffIcon />
-                          ) : (
-                            <VisibilityIcon />
-                          )}
-                        </IconButton>
-                      </InputAdornment>
-                    ),
-                  }}
-                />
+                Login
+              </Typography>
+              <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
                 <Button
-                  type='submit'
-                  variant='contained'
+                  variant='outlined'
                   color='primary'
-                  fullWidth
-                  size='large'
-                  sx={{ fontWeight: 600, borderRadius: 2, py: 1.5 }}
-                  disabled={loading}
+                  href='/auth/signup'
+                  sx={{ fontWeight: 600, borderRadius: 2 }}
                 >
-                  {loading ? 'Logging in...' : 'Login'}
+                  New user? Sign Up
                 </Button>
-              </Stack>
-            </form>
-          </CardContent>
-        </Card>
-      </Container>
-    </Box>
+              </Box>
+              <form onSubmit={handleSubmit}>
+                <Stack spacing={3}>
+                  {error && <Alert severity='error'>{error}</Alert>}
+                  <TextField
+                    label='Email'
+                    name='email'
+                    type='email'
+                    value={form.email}
+                    onChange={handleChange}
+                    required
+                    fullWidth
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position='start'>
+                          <EmailIcon />
+                        </InputAdornment>
+                      ),
+                    }}
+                  />
+                  <TextField
+                    label='Password'
+                    name='password'
+                    type={showPassword ? 'text' : 'password'}
+                    value={form.password}
+                    onChange={handleChange}
+                    required
+                    fullWidth
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position='start'>
+                          <LockIcon />
+                        </InputAdornment>
+                      ),
+                      endAdornment: (
+                        <InputAdornment position='end'>
+                          <IconButton
+                            aria-label='toggle password visibility'
+                            onClick={() => setShowPassword(show => !show)}
+                            edge='end'
+                          >
+                            {showPassword ? (
+                              <VisibilityOffIcon />
+                            ) : (
+                              <VisibilityIcon />
+                            )}
+                          </IconButton>
+                        </InputAdornment>
+                      ),
+                    }}
+                  />
+                  <Button
+                    type='submit'
+                    variant='contained'
+                    color='primary'
+                    fullWidth
+                    size='large'
+                    sx={{ fontWeight: 600, borderRadius: 2, py: 1.5 }}
+                    disabled={loading}
+                  >
+                    {loading ? 'Logging in...' : 'Login'}
+                  </Button>
+                </Stack>
+              </form>
+            </CardContent>
+          </Card>
+        </Container>
+      </Box>
+    </ProtectedRoute>
   );
 }

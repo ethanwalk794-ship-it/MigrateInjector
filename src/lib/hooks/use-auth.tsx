@@ -73,25 +73,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         try {
             const token = localStorage.getItem('token');
             if (!token) {
+                // Also clear cookie if no localStorage token
+                document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
                 setLoading(false);
                 return;
             }
+
+            // Create AbortController for faster timeout
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
 
             const response = await fetch('/api/auth/me', {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                 },
+                signal: controller.signal,
             });
+            
+            clearTimeout(timeoutId);
 
             if (response.ok) {
                 const userData = await response.json();
                 setUser(userData.data);
+                // Sync token to cookie for middleware access
+                document.cookie = `token=${token}; path=/; max-age=${7 * 24 * 60 * 60}; secure; samesite=strict`;
             } else {
                 localStorage.removeItem('token');
+                document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
             }
         } catch (error) {
-            console.error('Auth check failed:', error);
+            if (error.name !== 'AbortError') {
+                console.error('Auth check failed:', error);
+            }
             localStorage.removeItem('token');
+            document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
         } finally {
             setLoading(false);
         }
@@ -112,7 +127,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             const data = await response.json();
 
             if (response.ok) {
-                localStorage.setItem('token', data.data.token);
+                const token = data.data.token;
+                localStorage.setItem('token', token);
+                // Set cookie for middleware access
+                document.cookie = `token=${token}; path=/; max-age=${7 * 24 * 60 * 60}; secure; samesite=strict`;
                 setUser(data.data.user);
                 toast.success('Login successful!');
                 return true;
@@ -144,7 +162,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             const data = await response.json();
 
             if (response.ok) {
-                localStorage.setItem('token', data.data.token);
+                const token = data.data.token;
+                localStorage.setItem('token', token);
+                // Set cookie for middleware access
+                document.cookie = `token=${token}; path=/; max-age=${7 * 24 * 60 * 60}; secure; samesite=strict`;
                 setUser(data.data.user);
                 toast.success('Registration successful!');
                 return true;
@@ -176,8 +197,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             console.error('Logout error:', error);
         } finally {
             localStorage.removeItem('token');
+            // Clear cookie as well
+            document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
             setUser(null);
-            router.push('/');
+            router.push('/auth/login');
             toast.success('Logged out successfully');
         }
     };
@@ -267,5 +290,3 @@ export function withAuth<P extends object>(
         return <Component {...props} />;
     };
 }
-
-

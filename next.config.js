@@ -1,16 +1,66 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  experimental: {
-    serverComponentsExternalPackages: ['mongoose', 'bullmq', 'ioredis']
+  // Enable SWC minification for faster builds
+  swcMinify: true,
+  
+  // External packages for server-side
+  serverExternalPackages: ['mongoose', 'bullmq', 'ioredis', 'mammoth'],
+  
+  // Compiler optimizations
+  compiler: {
+    removeConsole: process.env.NODE_ENV === 'production',
   },
+  
+  // Experimental features for performance
+  experimental: {
+    optimizeCss: true,
+    serverComponentsExternalPackages: ['mammoth'],
+  },
+  
+  // Optimized images
   images: {
     domains: ['localhost'],
-    formats: ['image/webp', 'image/avif']
+    formats: ['image/webp', 'image/avif'],
+    minimumCacheTTL: 86400, // 1 day
   },
+  
   env: {
     CUSTOM_KEY: process.env.CUSTOM_KEY,
   },
-  webpack: (config, { isServer }) => {
+  webpack: (config, { isServer, dev }) => {
+    // Development optimizations
+    if (dev) {
+      config.watchOptions = {
+        poll: 1000,
+        aggregateTimeout: 300,
+        ignored: ['**/node_modules/**', '**/.next/**'],
+      };
+      // Faster source maps in development
+      config.devtool = 'eval-cheap-module-source-map';
+    } else {
+      // Production bundle splitting for better caching
+      config.optimization = {
+        ...config.optimization,
+        splitChunks: {
+          chunks: 'all',
+          cacheGroups: {
+            vendor: {
+              test: /[\\/]node_modules[\\/]/,
+              name: 'vendors',
+              chunks: 'all',
+              priority: 10,
+            },
+            mui: {
+              test: /[\\/]node_modules[\\/]@mui[\\/]/,
+              name: 'mui',
+              chunks: 'all',
+              priority: 20,
+            },
+          },
+        },
+      };
+    }
+    
     // Handle file uploads and document processing
     config.module.rules.push({
       test: /\.(docx|pdf)$/,
@@ -31,8 +81,18 @@ const nextConfig = {
         net: false,
         tls: false,
         crypto: false,
+        path: false,
+        stream: false,
+        util: false,
       };
     }
+    
+    // Optimize imports
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      '@mui/material': '@mui/material',
+      '@mui/icons-material': '@mui/icons-material',
+    };
 
     return config;
   },
@@ -44,8 +104,23 @@ const nextConfig = {
   compress: true,
   poweredByHeader: false,
   generateEtags: false,
+  
+  // Build optimizations
   eslint: {
     ignoreDuringBuilds: true,
+  },
+  typescript: {
+    ignoreBuildErrors: false,
+  },
+  
+  // Optimize imports to reduce bundle size
+  modularizeImports: {
+    '@mui/material': {
+      transform: '@mui/material/{{member}}',
+    },
+    '@mui/icons-material': {
+      transform: '@mui/icons-material/{{member}}',
+    },
   },
   // Headers (CORS for API + global security headers)
   async headers() {

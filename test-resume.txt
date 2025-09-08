@@ -1,0 +1,22 @@
+John Doe
+Software Developer
+
+EXPERIENCE:
+- Senior Full Stack Developer at Tech Corp (2020-2023)
+  • Developed web applications using React, Node.js, and MongoDB
+  • Led a team of 5 developers
+  • Implemented CI/CD pipelines
+
+SKILLS:
+- JavaScript, TypeScript, Python
+- React, Vue.js, Angular
+- Node.js, Express, Django
+- MongoDB, PostgreSQL, Redis
+- AWS, Docker, Kubernetes
+
+EDUCATION:
+- Bachelor of Computer Science, University of Tech (2016-2020)
+
+PROJECTS:
+- E-commerce Platform: Built a full-stack e-commerce solution
+- Data Analytics Dashboard: Created real-time analytics dashboard

@@ -1,10 +1,10 @@
 {
     "compilerOptions": {
-        "target": "es5",
+        "target": "es2020",
         "lib": [
             "dom",
             "dom.iterable",
-            "es6"
+            "esnext"
         ],
         "allowJs": true,
         "skipLibCheck": true,
@@ -49,13 +49,13 @@
                 "./src/styles/*"
             ]
         },
+        "types": ["node"],
         "forceConsistentCasingInFileNames": true,
         "noUncheckedIndexedAccess": true,
         "noImplicitReturns": true,
         "noFallthroughCasesInSwitch": true,
         "noImplicitOverride": true,
         "exactOptionalPropertyTypes": false,
-        "noUncheckedIndexedAccess": true,
         "allowUnusedLabels": false,
         "allowUnreachableCode": false
     },
@@ -63,6 +63,7 @@
         "next-env.d.ts",
         "**/*.ts",
         "**/*.tsx",
+        "**/*.d.ts",
         ".next/types/**/*.ts",
         "workers/**/*.ts",
         "scripts/**/*.ts"

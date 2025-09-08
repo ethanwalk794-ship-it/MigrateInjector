@@ -1,0 +1,11 @@
+{
+  "scripts": {
+    "dev:fast": "NEXT_PRIVATE_DEBUG_CACHE=1 next dev --turbo",
+    "dev:optimized": "NODE_OPTIONS='--max-old-space-size=4096' next dev",
+    "build:analyze": "ANALYZE=true next build",
+    "build:fast": "NODE_OPTIONS='--max-old-space-size=4096' next build",
+    "start:fast": "next start -p 3000",
+    "clean:all": "rm -rf .next node_modules package-lock.json && npm install",
+    "clean:cache": "rm -rf .next && npm run dev"
+  }
+}

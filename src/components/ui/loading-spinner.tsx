@@ -10,11 +10,11 @@ interface LoadingSpinnerProps {
   color?: 'primary' | 'secondary' | 'success' | 'warning' | 'error';
 }
 
-export function LoadingSpinner({ 
-  size = 40, 
-  message = 'Loading...', 
+export function LoadingSpinner({
+  size = 40,
+  message = 'Loading...',
   fullScreen = false,
-  color = 'primary'
+  color = 'primary',
 }: LoadingSpinnerProps) {
   const content = (
     <Box
@@ -43,13 +43,9 @@ export function LoadingSpinner({
           ease: 'linear',
         }}
       >
-        <CircularProgress
-          size={size}
-          color={color}
-          thickness={4}
-        />
+        <CircularProgress size={size} color={color} thickness={4} />
       </motion.div>
-      
+
       {message && (
         <motion.div
           initial={{ opacity: 0 }}
@@ -57,8 +53,8 @@ export function LoadingSpinner({
           transition={{ delay: 0.2 }}
         >
           <Typography
-            variant="body2"
-            color="text.secondary"
+            variant='body2'
+            color='text.secondary'
             sx={{
               textAlign: 'center',
               fontWeight: 500,
@@ -76,23 +72,11 @@ export function LoadingSpinner({
 
 // Preset loading components
 export function PageLoadingSpinner() {
-  return (
-    <LoadingSpinner
-      size={60}
-      message="Loading page..."
-      fullScreen
-    />
-  );
+  return <LoadingSpinner size={60} message='Loading page...' fullScreen />;
 }
 
 export function ButtonLoadingSpinner({ size = 20 }: { size?: number }) {
-  return (
-    <CircularProgress
-      size={size}
-      color="inherit"
-      thickness={4}
-    />
-  );
+  return <CircularProgress size={size} color='inherit' thickness={4} />;
 }
 
 export function InlineLoadingSpinner({ message }: { message?: string }) {
@@ -107,7 +91,7 @@ export function InlineLoadingSpinner({ message }: { message?: string }) {
     >
       <CircularProgress size={16} thickness={4} />
       {message && (
-        <Typography variant="body2" color="text.secondary">
+        <Typography variant='body2' color='text.secondary'>
           {message}
         </Typography>
       )}
@@ -116,8 +100,11 @@ export function InlineLoadingSpinner({ message }: { message?: string }) {
 }
 
 // Loading overlay for forms
-export function FormLoadingOverlay({ loading, children }: { 
-  loading: boolean; 
+export function FormLoadingOverlay({
+  loading,
+  children,
+}: {
+  loading: boolean;
   children: React.ReactNode;
 }) {
   return (
@@ -138,7 +125,7 @@ export function FormLoadingOverlay({ loading, children }: {
             zIndex: 1,
           }}
         >
-          <LoadingSpinner size={40} message="Processing..." />
+          <LoadingSpinner size={40} message='Processing...' />
         </Box>
       )}
     </Box>

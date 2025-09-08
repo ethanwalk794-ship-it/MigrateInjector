@@ -1,6 +1,8 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
+import ProtectedRoute from '@/components/auth/ProtectedRoute';
+import Navigation from '@/components/layout/Navigation';
 import {
   Box,
   Container,
@@ -26,12 +28,15 @@ import {
   Error as ErrorIcon,
   Delete as DeleteIcon,
   Upload as UploadIcon,
+  SmartToy as ProcessIcon,
+  AutoAwesome as ProcessAllIcon,
 } from '@mui/icons-material';
 import { useDropzone } from 'react-dropzone';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/lib/hooks/use-auth';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { toast } from 'react-hot-toast';
+import ProcessingModal from '@/components/ProcessingModal';
 
 interface UploadedFile {
   id: string;
@@ -42,19 +47,40 @@ interface UploadedFile {
   resumeId?: string;
 }
 
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+
 export default function ResumeUploadPage() {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
+  const router = useRouter();
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [processingModalOpen, setProcessingModalOpen] = useState(false);
+  const [processingMode, setProcessingMode] = useState<'single' | 'bulk'>('single');
+  const [selectedFileId, setSelectedFileId] = useState<string>();
 
+  useEffect(() => {
+    if (!loading && !user) {
+      router.replace('/'); // Redirect to login if not authenticated
+    }
+  }, [user, loading, router]);
+
+  if (loading || !user) {
+    return <div />; // Or a spinner if you want
+  }
+
+  // Use a ref counter for unique IDs to avoid SSR/client mismatch
+  const idCounter = React.useRef(0);
   const onDrop = useCallback((acceptedFiles: File[]) => {
-    const newFiles: UploadedFile[] = acceptedFiles.map(file => ({
-      id: Math.random().toString(36).substr(2, 9),
-      file,
-      status: 'pending',
-      progress: 0,
-    }));
-
+    const newFiles: UploadedFile[] = acceptedFiles.map(file => {
+      idCounter.current += 1;
+      return {
+        id: `file_${idCounter.current}`,
+        file,
+        status: 'pending',
+        progress: 0,
+      };
+    });
     setFiles(prev => [...prev, ...newFiles]);
   }, []);
 
@@ -146,6 +172,23 @@ export default function ResumeUploadPage() {
     setFiles([]);
   };
 
+  const openProcessingModal = (mode: 'single' | 'bulk', fileId?: string) => {
+    const successfulFiles = files.filter(f => f.status === 'success');
+    if (successfulFiles.length === 0) {
+      toast.error('Please upload files successfully before processing');
+      return;
+    }
+    
+    setProcessingMode(mode);
+    setSelectedFileId(fileId);
+    setProcessingModalOpen(true);
+  };
+
+  const closeProcessingModal = () => {
+    setProcessingModalOpen(false);
+    setSelectedFileId(undefined);
+  };
+
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'success':
@@ -175,9 +218,16 @@ export default function ResumeUploadPage() {
   const pendingCount = files.filter(f => f.status === 'pending').length;
   const successCount = files.filter(f => f.status === 'success').length;
   const errorCount = files.filter(f => f.status === 'error').length;
+  const canProcessIndividual = (fileId: string) => {
+    const file = files.find(f => f.id === fileId);
+    return file?.status === 'success';
+  };
+  const canProcessAll = successCount > 0;
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', py: 4 }}>
+    <ProtectedRoute>
+      <Navigation />
+      <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', py: 4 }}>
       <Container maxWidth='lg'>
         {/* Header */}
         <Box sx={{ mb: 4, textAlign: 'center' }}>
@@ -295,6 +345,17 @@ export default function ResumeUploadPage() {
                 >
                   Upload All ({pendingCount})
                 </Button>
+                {successCount > 0 && (
+                  <Button
+                    variant='contained'
+                    onClick={() => openProcessingModal('bulk')}
+                    disabled={uploading}
+                    startIcon={<ProcessAllIcon />}
+                    color='secondary'
+                  >
+                    Process All ({successCount})
+                  </Button>
+                )}
                 <Button
                   variant='text'
                   onClick={clearAllFiles}
@@ -391,6 +452,18 @@ export default function ResumeUploadPage() {
                               Upload
                             </Button>
                           )}
+                          {uploadedFile.status === 'success' && (
+                            <Button
+                              size='small'
+                              variant='contained'
+                              color='secondary'
+                              onClick={() => openProcessingModal('single', uploadedFile.id)}
+                              startIcon={<ProcessIcon />}
+                              disabled={uploading}
+                            >
+                              Process
+                            </Button>
+                          )}
                           <Button
                             size='small'
                             color='error'
@@ -406,6 +479,37 @@ export default function ResumeUploadPage() {
                 </motion.div>
               ))}
             </List>
+          </Paper>
+        )}
+
+        {/* Processing Instructions */}
+        {successCount > 0 && (
+          <Paper sx={{ p: 3, mb: 4, bgcolor: 'secondary.50', border: 1, borderColor: 'secondary.200' }}>
+            <Typography variant='h6' gutterBottom sx={{ fontWeight: 600, color: 'secondary.main' }}>
+              🚀 Ready for Processing!
+            </Typography>
+            <Typography variant='body2' color='text.secondary' sx={{ mb: 2 }}>
+              Your files are uploaded and ready for tech stack integration. Choose your processing option:
+            </Typography>
+            <Box display='flex' gap={2} flexWrap='wrap'>
+              <Button
+                variant='contained'
+                color='secondary'
+                startIcon={<ProcessAllIcon />}
+                onClick={() => openProcessingModal('bulk')}
+                disabled={uploading}
+              >
+                Process All Files ({successCount})
+              </Button>
+              <Button
+                variant='outlined'
+                color='secondary'
+                startIcon={<ProcessIcon />}
+                disabled
+              >
+                Or click "Process" on individual files
+              </Button>
+            </Box>
           </Paper>
         )}
 
@@ -447,13 +551,23 @@ export default function ResumeUploadPage() {
                 <CheckCircleIcon color='success' fontSize='small' />
               </ListItemIcon>
               <ListItemText
-                primary='Processing: Files are processed automatically'
-                secondary="You'll receive notifications when processing is complete"
+                primary='Processing: Customize resumes with your tech stack'
+                secondary="Click 'Process' to add your technical skills to relevant projects"
               />
             </ListItem>
           </List>
         </Paper>
+
+        {/* Processing Modal */}
+        <ProcessingModal
+          open={processingModalOpen}
+          onClose={closeProcessingModal}
+          files={files}
+          processingMode={processingMode}
+          selectedFileId={selectedFileId}
+        />
       </Container>
-    </Box>
+      </Box>
+    </ProtectedRoute>
   );
 }
